@@ -1,0 +1,182 @@
+STC10/11/12 reverse engineering
+
+Initialisation/Synchronisation
+------------------------------
+
+Send a constant stream of 0x7f bytes, and wait for an initial response
+by the MCU.
+
+Basic frame format
+------------------
+
+M0 M1 DR L0 L1 D0 ... Dn C0 C1 ME
+
+M0 := 0x46
+M1 := 0xb9
+DR := 0x6a if host2mcu else 0x68
+L  := 16 bit big endian packet length, counted from DR to ME
+C  := 16 big endian modular sum from DR to Dn
+ME := 0x16
+
+D0..Dn is the packet payload
+
+In most cases, the first byte of the payload marks the type of packet
+or type of command. Responses by the MCU often use this type to tell
+the programmer software which kind of command should follow. For
+instance, after the baudrate handshake, the MCU replies with a
+type 0x84 packet, and 0x84 is used for "erase" command packets from
+the host.
+
+Fun fact: The start marker (0x46, 0xb9) interpreted as UTF-16 is the
+Unicode character U+46B9, which is an unusual CJK ideograph (䚹)
+which translates as "to prepare" or "all ready" into English. How
+fitting! This might not be a coincidence.
+
+Packets host2mcu
+----------------
+
+1. Initiate baudrate handshake
+
+Payload: 0x50, 0x07, 0x00, 0x36, 0x01, ID0, ID1
+                ^ is 0x00 with current STC software and 11F08XE, what gives?
+
+ID0 = MCU ID, byte 1
+ID1 = MCU ID, byte 2
+
+2. Test baudrate setting 
+
+Payload: 0x8f, 0xc0, brt, 0x3f, brt_csum, delay, iap
+
+brt := MCU baudrate timer compare
+brt_csum := (2 * (256 - brt)) & 0xff
+delay := delay after baudrate change (0x40 seems to be fine),
+         STC software always seems to use 0xa0
+iap := MCU IAP wait state register value
+
+3. Switch to baudrate setting
+
+Payload: 0x8e, 0xc0, brt, 0x3f, brt_csum, delay, iap
+                                                  ^ current STC software *omits* this here!  
+Almost the same as the test packet.     
+
+4. Erase flash memory
+
+Payload: 0x84, 0xff, 0x00, blks, 0x00, 0x00, size,
+                ^ no idea what that is for, current STC software uses 0x00
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00,
+         0x80, ..., 0x0e
+
+blks := 256 byte blocks to clear
+size := total number of 256 byte blocks (size of flash memory)
+
+The 0x80..0x0e sequence seems to be some kind of magic code
+to stop flaky connections and the like from erasing the flash
+by accident.
+
+"size" specifies the number of flash memory blocks. if blks > size,
+eeprom will be erased.
+
+5. Program flash memory
+
+Payload: 0x00, 0x00, 0x00, addr0, addr1, size0, size1, D0, ..., Dn
+
+addr0, addr1 := big-endian 16 bit address
+size0, size1 := big-endian 16 bit block size, always 128
+D0...Dn := block data
+
+Current STC software always seems to write at least 4 128 byte blocks
+for some reason. Data is zero-padded.
+
+Current STC software always writes a sequential set of memory. Since
+flash and eeprom are essentially the same, any free space between
+flash to be written and eeprom to be written is padded with zeros,
+and then the whole batch is sent at once.
+
+6. Finish flash programming
+
+Payload: 0x69, 0x00, 0x00, 0x36, 0x01, ID0, ID1
+                ^ kSTC-ISP uses 0x07
+
+This should be sent after all flash programming is done. I am not
+entirely sure why, though. Programming also works without it.
+
+7. Set options
+
+Payload: 0x8d, MS0, ..., MS15, CLK0, CLK1, CLK2, CLK3
+
+MS0...MS15 := configuration registers specific to MCU model,
+              not documented here.
+
+CLK0...CLK3 := 32 bit big endian measured clock, in Hz
+
+8. Reset MCU
+
+Payload: 0x82
+
+
+Packets mcu2host
+----------------
+
+1. Info packet
+
+Payload: 0x50, SYNC00, SYNC01, ..., SYNC70, SYNC71,
+         V1, V2, 0x00, ID0, ID1, 0x8c,
+         MS0, ..., MS7,
+         UID0, ..., UID6,
+         unknown bytes follow
+
+SYNC* := sequence of 8 16-bit big-endian counter values, recorded
+         from the initial 0x7f sync sequence. this can be used to
+         determine the MCU clock frequency.
+
+V1    := version number, two digits packed BCD.
+V2    := stepping, one ASCII character.
+ID0   := MCU model ID, byte 1
+ID1   := MCU model ID, byte 2
+UID0...UID6 := 7 bytes of unique id
+
+UID is only sent by some BSL versions, others send zero bytes.
+
+2. Acknowledge baudrate handshake start
+
+Payload: 0x8f
+
+This means the programming software should erase the flash memory as
+the next step.
+
+3. Acknowledge baudrate test
+
+Payload: request packet payload with some pad byte appended to payload
+
+4. Acknowledge baudrate switch
+
+Payload: request packet payload with some pad byte appended to payload, and
+         first payload byte changed to 0x84
+
+5. Acknowledge erase
+
+Payload: 0x00, [UID0, ..., UID6]
+
+The UID is optional, not sent by all BSL versions.
+
+6. Acknowledge block write
+
+Payload: 0x00, csum
+
+csum := 8 bit modular sum of flash block data
+
+7. Acknowledge finish flash writing
+
+Payload: 0x8d
+
+This means the programming software should set options as the next
+step.
+
+8. Acknowledge set options
+
+Payload: 0x50, MS0, ..., MS4, 0x03, 0xff, V1, V2, MS0, ..., MS7,
+         UID0, ..., UID6,
+         unknown bytes follow
+
+Some of the model-specific bytes are repeated twice (MS0-MS4).
