@@ -16,6 +16,9 @@ D364 (STC11F08XE)
                         ^ pointer to name string
            ^ feature flags?
 
+NOTE: the upper word of the mcu id actually contains something else for STC12C54xx
+      series, and the eeprom size is broken.
+
 000509a0  00 d8 00 00 00 00 00 00  00 00 01 00 00 00 00 00  |................|
                                          ^ total flash size (incl. reserved space)
                                            (32 bit le)
