@@ -1,0 +1,79 @@
+Analysis of STC-ISP 6.63 for MCU database
+The executable obviously contains a table with MCU data.
+It can be easily found because we already know some MCU IDs.
+
+I assume the BSL is actually stored in a (protected) area of the flash memory.
+That is why STC MCUs have these odd user accessible memory sizes. With BSL 6.x,
+it looks like the uppermost 3 KB are reserved on regular controllers, and 2 KB
+on IAP controllers.
+
+
+
+D364 (STC11F08XE)
+
+00050990  c1 48 00 00 4c 3f 46 00  64 d3 00 00 00 20 00 00  |.H..L?F.d.... ..|
+                                    ^ ^ MCU ID     ^ code flash size (32 bit le)
+                        ^ pointer to name string
+           ^ feature flags?
+
+000509a0  00 d8 00 00 00 00 00 00  00 00 01 00 00 00 00 00  |................|
+                                         ^ total flash size (incl. reserved space)
+                                           (32 bit le)
+             ^ eeprom size (32 bit le)
+               doesn't really add up with datasheet, but
+               it *does* add up with the amount of total flash minus bsl!
+               parts without eeprom have zero here
+               apparently we need to subtract 1 KB
+
+
+
+D3E4 (STC11L08XE)
+
+00051090  c0 48 00 00 ac 3c 46 00  e4 d3 00 00 00 20 00 00  |.H...<F...... ..|
+000510a0  00 d8 00 00 00 00 00 00  00 00 01 00 00 00 00 00  |................|
+
+
+
+D344 (STC11F08X)
+
+00050ab0  c1 48 00 00 e0 3e 46 00  44 d3 00 00 00 20 00 00  |.H...>F.D.... ..|
+00050ac0  00 00 00 00 00 00 00 00  00 00 01 00 00 00 00 00  |................|
+
+
+
+D17E (STC12C5A60S2)
+
+0004ec30  81 08 00 00 e8 4b 46 00  7e d1 00 00 00 f0 00 00  |.....KF.~.......|
+0004ec40  00 08 00 00 00 00 00 00  00 00 01 00 00 00 00 00  |................|
+
+
+
+E202 (STC11F02)
+
+00050510  c1 68 00 00 fc 40 46 00  02 e2 00 00 00 08 00 00  |.h...@F.........|
+00050520  00 00 00 00 00 00 00 00  00 20 00 00 00 00 00 00  |......... ......|
+
+
+
+E222 (STC11F02E)
+
+00050470  c1 68 00 00 38 41 46 00  22 e2 00 00 00 08 00 00  |.h..8AF.".......|
+00050480  00 10 00 00 00 00 00 00  00 20 00 00 00 00 00 00  |......... ......|
+
+
+
+F110 (STC89C516RD+)
+
+00053350  01 cc 00 00 c8 2d 46 00  10 f1 00 00 00 f8 00 00  |.....-F.........|
+00053360  00 00 00 00 00 f8 00 00  00 00 01 00 00 00 00 00  |................|
+                         ^ the old STC89 controllers use this field,
+                           which is empty for the others.
+                           always seems to be equal to code flash size.
+
+F401 (STC15F2K08S2)
+
+0004e270  d1 05 03 00 68 4f 46 00  01 f4 00 00 00 20 00 00  |....hOF...... ..|
+0004e280  00 d4 00 00 00 00 00 00  00 00 01 00 07 00 00 00  |................|
+                                                ^ some new 15 series
+                                                  extra data, not sure
+                                                  what it is
