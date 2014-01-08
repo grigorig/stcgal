@@ -135,7 +135,7 @@ class Stc12Option:
         osc_vals = {4096: 0, 8192: 1, 16384: 2, 32768: 3}
         if val not in osc_vals.keys():
             raise ValueError("must be one of %s" % list(osc_vals.keys()))
-        self.msr[0] &= 0x8f
+        self.msr[0] &= 0xcf
         self.msr[0] |= osc_vals[val] << 4
 
     def get_por_delay(self):
