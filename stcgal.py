@@ -1575,11 +1575,11 @@ class StcGal:
                 bindata = opts.code_binary.read()
 
                 # warn if it overflows
+                if len(bindata) > code_size:
+                    print("WARNING: code_binary overflows into eeprom segment!", file=sys.stderr)
                 if len(bindata) > (code_size + ee_size):
                     print("WARNING: code_binary truncated!", file=sys.stderr)
                     bindata = bindata[0:code_size + ee_size]
-                elif len(bindata) > code_size:
-                    print("WARNING: code_binary overflows into eeprom segment!", file=sys.stderr)
 
                 # add eeprom data if supplied
                 if opts.eeprom_binary:
@@ -1589,6 +1589,9 @@ class StcGal:
                         eedata = eedata[0:ee_size]
                     if len(bindata) < code_size:
                         bindata += bytes(code_size - len(bindata))
+                    elif len(bindata) > code_size:
+                        print("WARNING: eeprom_binary overlaps code_binary", file=sys.stderr)
+                        bindata = bindata[0:code_size]
                     bindata += eedata
 
                 # pad to 256 byte boundary
