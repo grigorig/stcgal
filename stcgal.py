@@ -1426,7 +1426,7 @@ class Stc15Protocol(Stc12Protocol):
 
         user_speed = self.trim_frequency
         if user_speed <= 0: user_speed = self.mcu_clock_hz
-        program_speed = 11059200
+        program_speed = 22118400
 
         user_count = int(self.freq_counter * (user_speed / self.mcu_clock_hz))
         program_count = int(self.freq_counter * (program_speed / self.mcu_clock_hz))
@@ -1447,9 +1447,8 @@ class Stc15Protocol(Stc12Protocol):
         # add trim challenges for target frequency
         packet += self.get_trim_sequence(user_speed)
         # add trim challenge for program frequency
-        # TODO: high program frequency
-        packet += bytes([0x58, 0x00, 0x02, 0x00])
-        packet += bytes([0x58, 0x80, 0x02, 0x00])
+        packet += bytes([0x98, 0x00, 0x02, 0x00])
+        packet += bytes([0x98, 0x80, 0x02, 0x00])
         self.write_packet(packet)
         self.pulse()
         response = self.read_packet()
@@ -1514,8 +1513,8 @@ class Stc15Protocol(Stc12Protocol):
         print("Switching to %d baud..." % self.baud_transfer)
         packet = bytes([0x8e])
         packet += struct.pack(">H", program_trim)
-        packet += struct.pack(">B", 115200 // self.baud_transfer)
-        packet += bytes([0xa1, 0x64, 0xdc, 0x00, 0x83, 0x20, 0xff, 0x00])
+        packet += struct.pack(">B", 230400 // self.baud_transfer)
+        packet += bytes([0xa1, 0x64, 0xb8, 0x00, 0x81, 0x20, 0xff, 0x00])
         self.write_packet(packet)
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
