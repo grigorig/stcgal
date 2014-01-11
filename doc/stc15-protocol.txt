@@ -1,0 +1,92 @@
+STC15 reverse engineering
+
+Note: so far only based on STC15F104E!
+
+
+Basic differences between STC12 and STC15
+
+* Initial MCU response is an ack (0x80) packet. Host needs to respond
+  with the same ack and pulse 0x7f again, then MCU sends the info
+  packet.
+
+* Frequency timings sent with info packet are different; the calculation
+  is the same but only four timings are sent, followed by two other
+  unknown timings and two zero words.
+
+* A new handshake is used to tune the RC oscillator for a given
+  frequency.
+
+* The baudrate isn't changed with a complicated handshake, it is just
+  switched to with a 0x8e type packet.
+  This may be different on other MCUs that have a hardware UART.
+
+* Transfers use 64 bytes block size.
+  Possibly that's because the 15F104E only has 128 bytes RAM. It
+  might use bigger blocks on MCUs with more RAM.
+
+* Position of many option bits has changed, and more bits are used.
+
+
+The RC oscillator calibration
+
+Theory of operation:
+* Host sends a sequence of challenges. These are values to be
+  programmed into an internal RC oscillator calibration register.
+* Host sends 0x7f pulses
+* MCU sends back responses, which are the runtime of the baudrate
+  timing counter (similar to the info packet)
+* Host repeats this with finer trimmed challenge values.
+* Host determines calibration value with the lowest error.
+* Host sends baudrate switch packet
+* Host sends option packet to program frequency after flash programming
+
+The STC software uses a fixed set of coarse grained trim values to
+try. These are:
+
+sequence                        clock (MHz)
+0x1800 0x1880 0x1880 0x18ff     [4, 7.5]
+0x1880 0x18ff 0x5800 0x5880     (7.5, 10]
+0x5800 0x5880 0x5880 0x58ff     (10, 15]
+0x5880 0x58ff 0x9800 0x9880     (15, 21]
+0x9800 0x9880 0x9880 0x98ff     (21, 31] 
+0xd800 0xd880 0xd880 0xd8b4     (31, 40]
+
+In addition it sends a sequence for the programming speed:
+0x5800 0x5880 for normal speed and 0x9800 0x9880 for high
+speed programming.
+
+Then, by linear interpolation, it choses a suitable range of
+fine-tuning trim values to try according to the counter values sent
+by the MCU.
+
+The programming speed trim value is only determined by linear
+interpolation of the two trim challenges sent in the first round of
+calibration. This seems to be good enough.
+
+
+New packets host2mcu
+--------------------
+
+1. RC calibration challenge
+
+Payload: 0x65, T0, .., T6, 0xff, 0xff, 0x06, CNT,
+         TR00, TR01, 0x02, 0x00,
+         TR10, TR11, 0x02, 0x00,
+         ...
+
+T0...T6 := trim constants, from info packet
+CNT := number of calibration challenges (max 11)
+TRxx := calibration challenge trim values
+
+2. Baudrate switch
+
+Payload: 0x8e, TR0, TR1, BDIV, 0xa1, 0x64, FC,
+         0x00, IAP, 0x20, 0xff, 0x00
+
+TR0, TR1 := trim value for programming frequency
+            (normal = 11.0592 MHz, highspeed = 22.1184 MHz)
+BDIV := baud rate divider (normal: baud = 115200 / BDIV, highspeed: baud = 230400 / BDIV)
+FC := some frequency constant, normal: 0xdc, highspeed: 0xb8
+IAP := IAP delay, normal: 0x83, highspeed: 0x81
+
+
