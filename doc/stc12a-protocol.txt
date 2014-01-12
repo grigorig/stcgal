@@ -1,0 +1,24 @@
+STC12A
+
+This is an early STC12 protocol variant; It seems to be used on STC12Cx052 and
+possibly other models. It is a mix of STC89 and STC12 protocol versions.
+
+Differences to STC12:
+
+* Uses NONE parity instead of EVEN parity.
+
+* Checksum calculations are different: only a single-byte modular sum is used.
+
+* Baudrate handshake isn't initiated with a type 0x50 packet; this is simply
+  skipped.
+
+* After the handshake a special ping-pong sequence of 0x80 type packets needs
+  to be sent.
+  This doesn't appear to serve any purpose - possibly this is just done to
+  verify that the connection works reliably. STC12 doesn't require it anymore
+  because parity and the improved checksum ensure correct operation.
+
+* Erase is acknowledged with type 0x80 packet instead of type 0x00
+
+* After flash programming, there is no finish packet, type 0x69, sent; this
+  is simply skipped.
