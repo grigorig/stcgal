@@ -1011,6 +1011,7 @@ class Stc12Protocol:
         self.mcu_bsl_version = ""
         self.options = None
         self.model = None
+        self.uid = None
 
     def dump_packet(self, data, receive=True):
         if DEBUG:
@@ -1261,6 +1262,10 @@ class Stc12Protocol:
         if response[0] != 0x00:
             raise RuntimeError("wrong magic in erase packet")
 
+        # UID, only sent with this packet by some BSLs
+        if len(response) >= 8:
+            self.uid = response[1:8]
+
     def program_flash(self, data):
         """Program the MCU's flash memory.
 
@@ -1311,9 +1316,13 @@ class Stc12Protocol:
         if response[0] != 0x50:
             raise RuntimeError("wrong magic in option packet")
 
+        # If UID wasn't sent with erase acknowledge, it should be in this packet
+        if not self.uid:
+            self.uid = response[18:25]
+
         print("Target UID: %02X%02X%02X%02X%02X%02X%02X" %
-              (response[18], response[19], response[20], response[21],
-               response[22], response[23], response[24]))
+              (self.uid[0], self.uid[1], self.uid[2], self.uid[3], self.uid[4],
+               self.uid[5], self.uid[6]))
 
     def disconnect(self):
         """Disconnect from MCU"""
@@ -1533,6 +1542,10 @@ class Stc15Protocol(Stc12Protocol):
         response = self.read_packet()
         if response[0] != 0x50:
             raise RuntimeError("wrong magic in option packet")
+
+        print("Target UID: %02X%02X%02X%02X%02X%02X%02X" %
+              (self.uid[0], self.uid[1], self.uid[2], self.uid[3], self.uid[4],
+               self.uid[5], self.uid[6]))
 
 
 class StcGal:
