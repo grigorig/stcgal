@@ -1260,8 +1260,8 @@ class Stc12Protocol:
         Erase the flash memory with a block-erase command.
         """
 
-        blks = (erase_size + 255) // 256
-        size = (flash_size + 255) // 256
+        blks = ((erase_size + 511) // 512) * 2
+        size = ((flash_size + 511) // 512) * 2
         print("Erasing %d blocks: " % blks, end="")
         sys.stdout.flush()
         packet = bytes([0x84, 0xff, 0x00, blks, 0x00, 0x00, size,

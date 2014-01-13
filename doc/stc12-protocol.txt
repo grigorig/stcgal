@@ -77,6 +77,10 @@ by accident.
 "size" specifies the number of flash memory blocks. if blks > size,
 eeprom will be erased.
 
+Note that while erase size is specified in 256 byte blocks, the IAP
+memory actually has 512 bytes physical erase block size, and the BSL
+expects 512 byte aligned erase commands!
+
 5. Program flash memory
 
 Payload: 0x00, 0x00, 0x00, addr0, addr1, size0, size1, D0, ..., Dn
