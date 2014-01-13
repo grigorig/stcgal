@@ -1153,7 +1153,7 @@ class Stc12Protocol:
 
         MCUModelDatabase.print_model_info(self.model)
         print("Target frequency: %.3f MHz" % (self.mcu_clock_hz / 1E6))
-        print("Target bootloader version: %s" % self.mcu_bsl_version)
+        print("Target BSL version: %s" % self.mcu_bsl_version)
 
     def pulse(self):
         """Send a sequence of 0x7f bytes for synchronization"""
@@ -1202,7 +1202,7 @@ class Stc12Protocol:
                                  parity=serial.PARITY_EVEN)
 
         # send sync, and wait for MCU response
-        print("Waiting for MCU, please cycle power...", end="")
+        print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()
         self.pulse()
         print("done")
@@ -1220,7 +1220,7 @@ class Stc12Protocol:
 
         # start baudrate handshake
         brt, brt_csum, iap, delay = self.calculate_baud()
-        print("Switching to %d baud..." % self.baud_transfer, end="")
+        print("Switching to %d baud: " % self.baud_transfer, end="")
         sys.stdout.flush()
         packet = bytes([0x50, 0x00, 0x00, 0x36, 0x01])
         packet += struct.pack(">H", self.mcu_magic)
@@ -1230,7 +1230,7 @@ class Stc12Protocol:
             raise RuntimeError("incorrect magic in handshake packet")
 
         # test new settings
-        print("testing...", end="")
+        print("testing ", end="")
         sys.stdout.flush()
         packet = bytes([0x8f, 0xc0, brt, 0x3f, brt_csum, delay, iap])
         self.write_packet(packet)
@@ -1242,7 +1242,7 @@ class Stc12Protocol:
             raise RuntimeError("incorrect magic in handshake packet")
 
         # switch to the settings
-        print("setting...", end="")
+        print("setting ", end="")
         sys.stdout.flush()
         packet = bytes([0x8e, 0xc0, brt, 0x3f, brt_csum, delay])
         self.write_packet(packet)
@@ -1262,7 +1262,8 @@ class Stc12Protocol:
 
         blks = (erase_size + 255) // 256
         size = (flash_size + 255) // 256
-        print("Erasing %d blocks..." % blks)
+        print("Erasing %d blocks: " % blks, end="")
+        sys.stdout.flush()
         packet = bytes([0x84, 0xff, 0x00, blks, 0x00, 0x00, size,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00])
@@ -1271,6 +1272,7 @@ class Stc12Protocol:
         response = self.read_packet()
         if response[0] != 0x00:
             raise RuntimeError("incorrect magic in erase packet")
+        print("done")
 
         # UID, only sent with this packet by some BSLs
         if len(response) >= 8:
@@ -1283,7 +1285,7 @@ class Stc12Protocol:
         as the block size (depends on MCU's RAM size).
         """
 
-        print("Writing %d bytes..." % len(data), end="")
+        print("Writing %d bytes: " % len(data), end="")
         sys.stdout.flush()
         for i in range(0, len(data), self.PROGRAM_BLOCKSIZE):
             packet = bytes(3)
@@ -1300,21 +1302,24 @@ class Stc12Protocol:
                 raise RuntimeError("verification checksum mismatch")
             print(".", end="")
             sys.stdout.flush()
-        print()
+        print(" done")
 
+        print("Finishing write: ", end="")
+        sys.stdout.flush()
         packet = bytes([0x69, 0x00, 0x00, 0x36, 0x01])
         packet += struct.pack(">H", self.mcu_magic)
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8d:
             raise RuntimeError("incorrect magic in finish packet")
-        print("Finished writing flash!")
+        print("done")
 
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
     def program_options(self):
-        print("Setting options...")
+        print("Setting options: ", end="")
+        sys.stdout.flush()
         msr = self.options.get_msr()
         packet = bytes([0x8d, msr[0], msr[1], msr[2], msr[3],
                         0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -1325,6 +1330,7 @@ class Stc12Protocol:
         response = self.read_packet()
         if response[0] != 0x50:
             raise RuntimeError("incorrect magic in option packet")
+        print("done")
 
         # If UID wasn't sent with erase acknowledge, it should be in this packet
         if not self.uid:
@@ -1450,7 +1456,8 @@ class Stc15Protocol(Stc12Protocol):
         program_count = int(self.freq_counter * (program_speed / self.mcu_clock_hz))
 
         # Initiate handshake
-        print("Trimming frequency...")
+        print("Trimming frequency: ", end="")
+        sys.stdout.flush()
         packet = bytes([0x50, 0x00, 0x00, 0x36, 0x01])
         packet += struct.pack(">H", self.mcu_magic)
         self.write_packet(packet)
@@ -1524,11 +1531,11 @@ class Stc15Protocol(Stc12Protocol):
                 best_trim = trim
                 best_count = count
         final_freq = (best_count / self.freq_counter) * self.mcu_clock_hz
-        print("Trimmed to %.03f MHz!" % (final_freq / 1E6))
+        print("%.03f MHz" % (final_freq / 1E6))
         self.options.set_trim(best_trim)
 
         # finally, switch baudrate
-        print("Switching to %d baud..." % self.baud_transfer)
+        print("Switching to %d baud: " % self.baud_transfer, end="")
         packet = bytes([0x8e])
         packet += struct.pack(">H", program_trim)
         packet += struct.pack(">B", 230400 // self.baud_transfer)
@@ -1539,9 +1546,11 @@ class Stc15Protocol(Stc12Protocol):
         response = self.read_packet()
         if response[0] != 0x84:
             raise RuntimeError("incorrect magic in handshake packet")
+        print("done")
 
     def program_options(self):
-        print("Setting options...")
+        print("Setting options: ", end="")
+        sys.stdout.flush()
         msr = self.options.get_msr()
         packet = bytes([0x8d])
         packet += msr
@@ -1551,6 +1560,7 @@ class Stc15Protocol(Stc12Protocol):
         response = self.read_packet()
         if response[0] != 0x50:
             raise RuntimeError("incorrect magic in option packet")
+        print("done")
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
 
