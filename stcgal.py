@@ -1574,10 +1574,11 @@ class StcGal:
     def emit_options(self, options):
         for o in options:
             try:
-                k, v = o.split("=", 1)
-                self.protocol.set_option(k, v)
+                kv = o.split("=", 1)
+                if len(kv) < 2: raise ValueError("incorrect format")
+                self.protocol.set_option(kv[0], kv[1])
             except ValueError as e:
-                raise NameError("invalid option '%s' (%s)" % (k, e))
+                raise NameError("invalid option '%s' (%s)" % (kv[0], e))
 
     def run(self):
         try: self.protocol.connect()
