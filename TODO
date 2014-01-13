@@ -1,0 +1,4 @@
+- some more documentation / comments
+- private member naming, other style issues
+- sensible default serial port (e.g. on windows)
+- split up into base protocol class and variants

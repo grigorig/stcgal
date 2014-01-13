@@ -23,12 +23,6 @@
 
 # stcgal - STC MCU serial bootloader flash programmer
 
-"""
-TODO:
-- some more documentation / comments
-- private member naming, other style issues
-"""
-
 import serial
 import sys, os, time, struct
 import argparse
