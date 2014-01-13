@@ -1569,7 +1569,8 @@ class StcGal:
         if opts.protocol == "stc12":
             self.protocol = Stc12Protocol(opts.port, opts.handshake, opts.baud)
         else:
-            self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud, opts.trim)
+            self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud,
+                                          round(opts.trim * 1000))
 
     def emit_options(self, options):
         for o in options:
@@ -1659,7 +1660,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
     parser.add_argument("-o", "--option", help="set option (can be used multiple times)", action="append")
-    parser.add_argument("-t", "--trim", help="RC oscillator frequency in Hz (STC15 series only)", type=int, default=-1)
+    parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15 series only)", type=float, default=0.0)
     opts = parser.parse_args()
     
     # run programmer
