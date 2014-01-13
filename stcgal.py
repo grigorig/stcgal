@@ -53,6 +53,13 @@ class Utils:
         try: return int(val, 0)
         except: raise ValueError("invalid integer")
 
+    @classmethod
+    def hexstr(self, bytestr, sep=""):
+        """make formatted hex string output from byte sequence"""
+
+        return sep.join(["%02X" % x for x in bytestr])
+
+
 class BaudType:
     """Check baud rate for validity"""
 
@@ -1015,8 +1022,8 @@ class Stc12Protocol:
 
     def dump_packet(self, data, receive=True):
         if DEBUG:
-            print("%s Packet data: " % ("<-" if receive else "->") +
-                  " ".join(hex(x) for x in data), file=sys.stderr)
+            print("%s Packet data: %s" % (("<-" if receive else "->"),
+                  Utils.hexstr(data, " ")))
 
     def modular_sum(self, data):
         """modular 16-bit sum"""
@@ -1320,9 +1327,7 @@ class Stc12Protocol:
         if not self.uid:
             self.uid = response[18:25]
 
-        print("Target UID: %02X%02X%02X%02X%02X%02X%02X" %
-              (self.uid[0], self.uid[1], self.uid[2], self.uid[3], self.uid[4],
-               self.uid[5], self.uid[6]))
+        print("Target UID: %s" % Utils.hexstr(self.uid))
 
     def disconnect(self):
         """Disconnect from MCU"""
@@ -1543,9 +1548,7 @@ class Stc15Protocol(Stc12Protocol):
         if response[0] != 0x50:
             raise RuntimeError("wrong magic in option packet")
 
-        print("Target UID: %02X%02X%02X%02X%02X%02X%02X" %
-              (self.uid[0], self.uid[1], self.uid[2], self.uid[3], self.uid[4],
-               self.uid[5], self.uid[6]))
+        print("Target UID: %s" % Utils.hexstr(self.uid))
 
 
 class StcGal:
