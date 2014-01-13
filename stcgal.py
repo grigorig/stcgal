@@ -72,6 +72,12 @@ class BaudType:
     def __repr__(self): return "baudrate"
 
 class MCUModelDatabase:
+    """Database that holds basic MCU information.
+
+    This database holds the most basic information about MCU models:
+    name, identification code and flash memory sizes.
+    """
+
     MCUModel = collections.namedtuple("MCUModel", ["name", "magic", "total", "code", "eeprom"])
 
     models = (
@@ -120,6 +126,7 @@ class MCUModelDatabase:
         MCUModel(name='STC15F101W', magic=0xf291, total=8192, code=1024, eeprom=4096),
         MCUModel(name='STC15F102W', magic=0xf292, total=8192, code=2048, eeprom=3072),
         MCUModel(name='STC15F103W', magic=0xf293, total=8192, code=3072, eeprom=2048),
+        # XXX: same magic as STC15F104E!
         MCUModel(name='STC15F104W', magic=0xf294, total=8192, code=4096, eeprom=1024),
         MCUModel(name='IAP15F105W', magic=0xf2b5, total=8192, code=5120, eeprom=0),
         MCUModel(name='STC15F100', magic=0xf298, total=8192, code=512, eeprom=0),
@@ -132,6 +139,7 @@ class MCUModelDatabase:
         MCUModel(name='STC15L101W', magic=0xf2d1, total=8192, code=1024, eeprom=4096),
         MCUModel(name='STC15L102W', magic=0xf2d2, total=8192, code=2048, eeprom=3072),
         MCUModel(name='STC15L103W', magic=0xf2d3, total=8192, code=3072, eeprom=2048),
+        # XXX: same magic as STC15L104E!
         MCUModel(name='STC15L104W', magic=0xf2d4, total=8192, code=4096, eeprom=1024),
         MCUModel(name='IAP15L105W', magic=0xf2f5, total=8192, code=5120, eeprom=0),
         MCUModel(name='STC15L100', magic=0xf2d8, total=8192, code=512, eeprom=0),
@@ -739,6 +747,7 @@ class MCUModelDatabase:
         print("  Code flash: %.1f KB" % (model.code / 1024.0))
         print("  EEPROM flash: %.1f KB" % (model.eeprom / 1024.0))
 
+
 class BaseOption:
     def print(self):
         print("Target options:")
@@ -751,13 +760,13 @@ class BaseOption:
                 print("Option %s=%s" % (name, value))
                 set_func(value)
                 return
-        raise ValueError
+        raise ValueError("unknown")
 
     def get_option(self, name):
         for opt, get_func, _ in self.options:
             if opt == name:
                 return get_func(name)
-        raise ValueError
+        raise ValueError("unknown")
 
     def get_msr(self):
         return bytes(self.msr)
@@ -1046,13 +1055,13 @@ class Stc12Protocol:
         packet += self.ser.read(2)
         if packet[0:2] != self.PACKET_START:
             self.dump_packet(packet)
-            raise RuntimeError("wrong packet frame start")
+            raise RuntimeError("incorrect frame start")
 
         # read direction and length
         packet += self.ser.read(3)
         if packet[2] != self.PACKET_MCU[0]:
             self.dump_packet(packet)
-            raise RuntimeError("wrong packet direction magic")
+            raise RuntimeError("incorrect packet direction magic")
 
         # read packet data
         packet_len, = struct.unpack(">H", packet[3:5])
@@ -1061,7 +1070,7 @@ class Stc12Protocol:
         # verify end code
         if packet[packet_len+1] != self.PACKET_END[0]:
             self.dump_packet(packet)
-            raise RuntimeError("wrong packet frame end")
+            raise RuntimeError("incorrect frame end")
 
         # verify checksum
         packet_csum, = struct.unpack(">H", packet[packet_len-1:packet_len+1])
@@ -1179,7 +1188,7 @@ class Stc12Protocol:
 
         status_packet = self.read_packet()
         if status_packet[0] != 0x50:
-            raise RuntimeError("wrong magic in status packet")
+            raise RuntimeError("incorrect magic in status packet")
         return status_packet
 
     def initialize_options(self, status_packet):
@@ -1224,7 +1233,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8f:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
         # test new settings
         print("testing...", end="")
@@ -1236,7 +1245,7 @@ class Stc12Protocol:
         response = self.read_packet()
         self.ser.baudrate = self.baud_handshake
         if response[0] != 0x8f:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
         # switch to the settings
         print("setting...", end="")
@@ -1247,7 +1256,7 @@ class Stc12Protocol:
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x84:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
         print("done")
 
@@ -1267,7 +1276,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x00:
-            raise RuntimeError("wrong magic in erase packet")
+            raise RuntimeError("incorrect magic in erase packet")
 
         # UID, only sent with this packet by some BSLs
         if len(response) >= 8:
@@ -1292,7 +1301,7 @@ class Stc12Protocol:
             self.write_packet(packet)
             response = self.read_packet()
             if response[0] != 0x00:
-                raise RuntimeError("wrong magic in write packet")
+                raise RuntimeError("incorrect magic in write packet")
             elif response[1] != csum:
                 raise RuntimeError("verification checksum mismatch")
             print(".", end="")
@@ -1304,7 +1313,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8d:
-            raise RuntimeError("wrong magic in finish packet")
+            raise RuntimeError("incorrect magic in finish packet")
         print("Finished writing flash!")
 
     def set_option(self, name, value):
@@ -1321,7 +1330,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x50:
-            raise RuntimeError("wrong magic in option packet")
+            raise RuntimeError("incorrect magic in option packet")
 
         # If UID wasn't sent with erase acknowledge, it should be in this packet
         if not self.uid:
@@ -1340,6 +1349,7 @@ class Stc12Protocol:
 
 
 class Stc15Protocol(Stc12Protocol):
+    """Protocol handler for STC 15 series"""
 
     ERASE_COUNTDOWN = 0x5e
     PROGRAM_BLOCKSIZE = 64
@@ -1369,7 +1379,7 @@ class Stc15Protocol(Stc12Protocol):
             self.pulse()
             status_packet = self.read_packet()
         if status_packet[0] != 0x50:
-            raise RuntimeError("wrong magic in status packet")
+            raise RuntimeError("incorrect magic in status packet")
         return status_packet
 
     def initialize_status(self, packet):
@@ -1452,7 +1462,7 @@ class Stc15Protocol(Stc12Protocol):
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8f:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
         # trim challenge-response, first round
         packet = bytes([0x65])
@@ -1467,7 +1477,7 @@ class Stc15Protocol(Stc12Protocol):
         self.pulse()
         response = self.read_packet()
         if response[0] != 0x65:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
         # determine programming speed trim value
         target_trim_a, target_count_a = struct.unpack(">HH", response[28:32])
@@ -1509,7 +1519,7 @@ class Stc15Protocol(Stc12Protocol):
         self.pulse()
         response = self.read_packet()
         if response[0] != 0x65:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
         # determine best trim value
         best_trim = 0
@@ -1534,7 +1544,7 @@ class Stc15Protocol(Stc12Protocol):
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x84:
-            raise RuntimeError("wrong magic in handshake packet")
+            raise RuntimeError("incorrect magic in handshake packet")
 
     def program_options(self):
         print("Setting options...")
@@ -1546,7 +1556,7 @@ class Stc15Protocol(Stc12Protocol):
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x50:
-            raise RuntimeError("wrong magic in option packet")
+            raise RuntimeError("incorrect magic in option packet")
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
 
@@ -1605,7 +1615,7 @@ class StcGal:
                     if len(bindata) < code_size:
                         bindata += bytes(code_size - len(bindata))
                     elif len(bindata) > code_size:
-                        print("WARNING: eeprom_binary overlaps code_binary", file=sys.stderr)
+                        print("WARNING: eeprom_binary overlaps code_binary!", file=sys.stderr)
                         bindata = bindata[0:code_size]
                     bindata += eedata
 
@@ -1640,7 +1650,7 @@ class StcGal:
 
 if __name__ == "__main__":
     # check arguments
-    parser = argparse.ArgumentParser(description="STC10/11/12 series MCU ISP flash tool")
+    parser = argparse.ArgumentParser(description="STC MCU ISP flash tool")
     parser.add_argument("code_binary", help="code segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_binary", help="eeprom segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc12", "stc15"], default="stc12")
