@@ -1585,6 +1585,44 @@ class StcGal:
             except ValueError as e:
                 raise NameError("invalid option '%s' (%s)" % (kv[0], e))
 
+    def program_mcu(self):
+        code_size = self.protocol.model.code
+        ee_size = self.protocol.model.eeprom
+
+        bindata = opts.code_binary.read()
+
+        # warn if it overflows
+        if len(bindata) > code_size:
+            print("WARNING: code_binary overflows into eeprom segment!", file=sys.stderr)
+        if len(bindata) > (code_size + ee_size):
+            print("WARNING: code_binary truncated!", file=sys.stderr)
+            bindata = bindata[0:code_size + ee_size]
+
+        # add eeprom data if supplied
+        if opts.eeprom_binary:
+            eedata = opts.eeprom_binary.read()
+            if len(eedata) > ee_size:
+                print("WARNING: eeprom_binary truncated!", file=sys.stderr)
+                eedata = eedata[0:ee_size]
+            if len(bindata) < code_size:
+                bindata += bytes(code_size - len(bindata))
+            elif len(bindata) > code_size:
+                print("WARNING: eeprom_binary overlaps code_binary!", file=sys.stderr)
+                bindata = bindata[0:code_size]
+            bindata += eedata
+
+        # pad to 256 byte boundary
+        if len(bindata) % 256:
+            bindata += bytes(256 - len(bindata) % 256)
+
+        if opts.option: self.emit_options(opts.option)
+
+        self.protocol.handshake()
+        self.protocol.erase_flash(len(bindata), code_size)
+        self.protocol.program_flash(bindata)
+        self.protocol.program_options()
+        self.protocol.disconnect()
+
     def run(self):
         try: self.protocol.connect()
         except KeyboardInterrupt:
@@ -1598,60 +1636,28 @@ class StcGal:
             print("Serial communication error: %s" % e, file=sys.stderr)
             return 1
 
-        if opts.code_binary:
-            try:
-                code_size = self.protocol.model.code
-                ee_size = self.protocol.model.eeprom
-
-                bindata = opts.code_binary.read()
-
-                # warn if it overflows
-                if len(bindata) > code_size:
-                    print("WARNING: code_binary overflows into eeprom segment!", file=sys.stderr)
-                if len(bindata) > (code_size + ee_size):
-                    print("WARNING: code_binary truncated!", file=sys.stderr)
-                    bindata = bindata[0:code_size + ee_size]
-
-                # add eeprom data if supplied
-                if opts.eeprom_binary:
-                    eedata = opts.eeprom_binary.read()
-                    if len(eedata) > ee_size:
-                        print("WARNING: eeprom_binary truncated!", file=sys.stderr)
-                        eedata = eedata[0:ee_size]
-                    if len(bindata) < code_size:
-                        bindata += bytes(code_size - len(bindata))
-                    elif len(bindata) > code_size:
-                        print("WARNING: eeprom_binary overlaps code_binary!", file=sys.stderr)
-                        bindata = bindata[0:code_size]
-                    bindata += eedata
-
-                # pad to 256 byte boundary
-                if len(bindata) % 256:
-                    bindata += bytes(256 - len(bindata) % 256)
-
-                if opts.option: self.emit_options(opts.option)
-
-                self.protocol.handshake()
-                self.protocol.erase_flash(len(bindata), code_size)
-                self.protocol.program_flash(bindata)
-                self.protocol.program_options()
+        try:
+            if opts.code_binary:
+                self.program_mcu()
+                return 0
+            else:
                 self.protocol.disconnect()
                 return 0
-            except NameError as e:
-                print("Option error: %s" % e, file=sys.stderr)
-                self.protocol.disconnect()
-                return 1
-            except RuntimeError as e:
-                print("Communication error: %s" % e, file=sys.stderr)
-                self.protocol.disconnect()
-                return 1
-            except KeyboardInterrupt:
-                print("interrupted")
-                self.protocol.disconnect()
-                return 2
-            except serial.serialutil.SerialException as e:
-                print("Serial communication error: %s" % e, file=sys.stderr)
-                return 1
+        except NameError as e:
+            print("Option error: %s" % e, file=sys.stderr)
+            self.protocol.disconnect()
+            return 1
+        except RuntimeError as e:
+            print("Communication error: %s" % e, file=sys.stderr)
+            self.protocol.disconnect()
+            return 1
+        except KeyboardInterrupt:
+            print("interrupted")
+            self.protocol.disconnect()
+            return 2
+        except serial.serialutil.SerialException as e:
+            print("Serial communication error: %s" % e, file=sys.stderr)
+            return 1
 
 
 if __name__ == "__main__":
