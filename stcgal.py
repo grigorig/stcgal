@@ -1218,10 +1218,17 @@ class Stc12Protocol:
 
         print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()
-        self.pulse()
+
+        # send sync, and wait for MCU response
+        # ignore errors until we see a valid response
+        status_packet = None
+        while not status_packet:
+            try:
+                self.pulse()
+                status_packet = self.get_status_packet()
+            except (RuntimeError, serial.SerialException): pass
         print("done")
 
-        status_packet = self.get_status_packet()
         self.initialize_status(status_packet)
         self.initialize_model()
         self.initialize_options(status_packet)
@@ -1646,7 +1653,7 @@ class StcGal:
             print("Communication error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
-        except serial.serialutil.SerialException as e:
+        except serial.SerialException as e:
             print("Serial communication error: %s" % e, file=sys.stderr)
             return 1
 
@@ -1669,7 +1676,7 @@ class StcGal:
             print("interrupted")
             self.protocol.disconnect()
             return 2
-        except serial.serialutil.SerialException as e:
+        except serial.SerialException as e:
             print("Serial communication error: %s" % e, file=sys.stderr)
             return 1
 
