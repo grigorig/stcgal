@@ -1035,6 +1035,17 @@ class Stc12Protocol:
         for b in data: s += b
         return s & 0xffff
 
+    def read_bytes_safe(self, num):
+        """Read data from serial port with timeout handling
+
+        Read timeouts should raise an exception, that is the Python way."""
+
+        data = self.ser.read(num)
+        if len(data) != num:
+            raise serial.SerialException("read timeout")
+
+        return data
+
     def read_packet(self):
         """Read and check packet from MCU.
         
@@ -1046,20 +1057,20 @@ class Stc12Protocol:
 
         # read and check frame start magic
         packet = bytes()
-        packet += self.ser.read(2)
+        packet += self.read_bytes_safe(2)
         if packet[0:2] != self.PACKET_START:
             self.dump_packet(packet)
             raise RuntimeError("incorrect frame start")
 
         # read direction and length
-        packet += self.ser.read(3)
+        packet += self.read_bytes_safe(3)
         if packet[2] != self.PACKET_MCU[0]:
             self.dump_packet(packet)
             raise RuntimeError("incorrect packet direction magic")
 
         # read packet data
         packet_len, = struct.unpack(">H", packet[3:5])
-        packet += self.ser.read(packet_len - 3)
+        packet += self.read_bytes_safe(packet_len - 3)
 
         # verify end code
         if packet[packet_len+1] != self.PACKET_END[0]:
@@ -1201,7 +1212,10 @@ class Stc12Protocol:
         self.ser = serial.Serial(port=self.port, baudrate=self.baud_handshake,
                                  parity=serial.PARITY_EVEN)
 
-        # send sync, and wait for MCU response
+        # conservative timeout values
+        self.ser.timeout = 10.0
+        self.ser.interCharTimeout = 1.0
+
         print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()
         self.pulse()
