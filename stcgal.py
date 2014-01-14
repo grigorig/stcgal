@@ -54,6 +54,16 @@ class Utils:
         return sep.join(["%02X" % x for x in bytestr])
 
 
+class StcFramingException(Exception):
+    """Something wrong with packet framing or checksum"""
+    pass
+
+
+class StcProtocolException(Exception):
+    """High-level protocol issue, like wrong packet type"""
+    pass
+
+
 class BaudType:
     """Check baud rate for validity"""
 
@@ -1060,13 +1070,13 @@ class Stc12Protocol:
         packet += self.read_bytes_safe(2)
         if packet[0:2] != self.PACKET_START:
             self.dump_packet(packet)
-            raise RuntimeError("incorrect frame start")
+            raise StcFramingException("incorrect frame start")
 
         # read direction and length
         packet += self.read_bytes_safe(3)
         if packet[2] != self.PACKET_MCU[0]:
             self.dump_packet(packet)
-            raise RuntimeError("incorrect packet direction magic")
+            raise StcFramingException("incorrect packet direction magic")
 
         # read packet data
         packet_len, = struct.unpack(">H", packet[3:5])
@@ -1075,14 +1085,14 @@ class Stc12Protocol:
         # verify end code
         if packet[packet_len+1] != self.PACKET_END[0]:
             self.dump_packet(packet)
-            raise RuntimeError("incorrect frame end")
+            raise StcFramingException("incorrect frame end")
 
         # verify checksum
         packet_csum, = struct.unpack(">H", packet[packet_len-1:packet_len+1])
         calc_csum = sum(packet[2:packet_len-1]) & 0xffff
         if packet_csum != calc_csum:
             self.dump_packet(packet)
-            raise RuntimeError("packet checksum mismatch")
+            raise StcFramingException("packet checksum mismatch")
 
         self.dump_packet(packet, receive=True)
 
@@ -1138,7 +1148,8 @@ class Stc12Protocol:
         brt = 256 - round((self.mcu_clock_hz) / (self.baud_transfer * 16))
         brt_csum = (2 * (256 - brt)) & 0xff
         try: baud_actual = (self.mcu_clock_hz) / (16 * (256 - brt))
-        except ZeroDivisionError: raise RuntimeError("baudrate too high")
+        except ZeroDivisionError:
+            raise StcProtocolException("requested baudrate too high for target")
         baud_error = (abs(self.baud_transfer - baud_actual) * 100.0) / self.baud_transfer
         if baud_error > 5.0:
             print("WARNING: baud rate error is %.2f%%. You may need to set a slower rate." %
@@ -1193,7 +1204,7 @@ class Stc12Protocol:
 
         status_packet = self.read_packet()
         if status_packet[0] != 0x50:
-            raise RuntimeError("incorrect magic in status packet")
+            raise StcProtocolException("incorrect magic in status packet")
         return status_packet
 
     def initialize_options(self, status_packet):
@@ -1226,7 +1237,7 @@ class Stc12Protocol:
             try:
                 self.pulse()
                 status_packet = self.get_status_packet()
-            except (RuntimeError, serial.SerialException): pass
+            except (StcFramingException, serial.SerialException): pass
         print("done")
 
         self.initialize_status(status_packet)
@@ -1248,7 +1259,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8f:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
 
         # test new settings
         print("testing ", end="")
@@ -1260,7 +1271,7 @@ class Stc12Protocol:
         response = self.read_packet()
         self.ser.baudrate = self.baud_handshake
         if response[0] != 0x8f:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
 
         # switch to the settings
         print("setting ", end="")
@@ -1271,7 +1282,7 @@ class Stc12Protocol:
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x84:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
 
         print("done")
 
@@ -1292,7 +1303,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x00:
-            raise RuntimeError("incorrect magic in erase packet")
+            raise StcProtocolException("incorrect magic in erase packet")
         print("done")
 
         # UID, only sent with this packet by some BSLs
@@ -1318,9 +1329,9 @@ class Stc12Protocol:
             self.write_packet(packet)
             response = self.read_packet()
             if response[0] != 0x00:
-                raise RuntimeError("incorrect magic in write packet")
+                raise StcProtocolException("incorrect magic in write packet")
             elif response[1] != csum:
-                raise RuntimeError("verification checksum mismatch")
+                raise StcProtocolException("verification checksum mismatch")
             print(".", end="")
             sys.stdout.flush()
         print(" done")
@@ -1332,7 +1343,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8d:
-            raise RuntimeError("incorrect magic in finish packet")
+            raise StcProtocolException("incorrect magic in finish packet")
         print("done")
 
     def set_option(self, name, value):
@@ -1350,7 +1361,7 @@ class Stc12Protocol:
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x50:
-            raise RuntimeError("incorrect magic in option packet")
+            raise StcProtocolException("incorrect magic in option packet")
         print("done")
 
         # If UID wasn't sent with erase acknowledge, it should be in this packet
@@ -1400,7 +1411,7 @@ class Stc15Protocol(Stc12Protocol):
             self.pulse()
             status_packet = self.read_packet()
         if status_packet[0] != 0x50:
-            raise RuntimeError("incorrect magic in status packet")
+            raise StcProtocolException("incorrect magic in status packet")
         return status_packet
 
     def initialize_status(self, packet):
@@ -1484,7 +1495,7 @@ class Stc15Protocol(Stc12Protocol):
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x8f:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
 
         # trim challenge-response, first round
         packet = bytes([0x65])
@@ -1499,7 +1510,7 @@ class Stc15Protocol(Stc12Protocol):
         self.pulse()
         response = self.read_packet()
         if response[0] != 0x65:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
 
         # determine programming speed trim value
         target_trim_a, target_count_a = struct.unpack(">HH", response[28:32])
@@ -1541,7 +1552,7 @@ class Stc15Protocol(Stc12Protocol):
         self.pulse()
         response = self.read_packet()
         if response[0] != 0x65:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
 
         # determine best trim value
         best_trim = 0
@@ -1566,7 +1577,7 @@ class Stc15Protocol(Stc12Protocol):
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x84:
-            raise RuntimeError("incorrect magic in handshake packet")
+            raise StcProtocolException("incorrect magic in handshake packet")
         print("done")
 
     def program_options(self):
@@ -1580,7 +1591,7 @@ class Stc15Protocol(Stc12Protocol):
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x50:
-            raise RuntimeError("incorrect magic in option packet")
+            raise StcProtocolException("incorrect magic in option packet")
         print("done")
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
@@ -1649,12 +1660,12 @@ class StcGal:
         except KeyboardInterrupt:
             print("interrupted")
             return 2
-        except RuntimeError as e:
-            print("Communication error: %s" % e, file=sys.stderr)
+        except (StcFramingException, StcProtocolException) as e:
+            print("Protocol error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
         except serial.SerialException as e:
-            print("Serial communication error: %s" % e, file=sys.stderr)
+            print("Serial port error: %s" % e, file=sys.stderr)
             return 1
 
         try:
@@ -1668,8 +1679,8 @@ class StcGal:
             print("Option error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
-        except RuntimeError as e:
-            print("Communication error: %s" % e, file=sys.stderr)
+        except (StcFramingException, StcProtocolException) as e:
+            print("Protocol error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
         except KeyboardInterrupt:
@@ -1677,7 +1688,7 @@ class StcGal:
             self.protocol.disconnect()
             return 2
         except serial.SerialException as e:
-            print("Serial communication error: %s" % e, file=sys.stderr)
+            print("Serial port error: %s" % e, file=sys.stderr)
             return 1
 
 
