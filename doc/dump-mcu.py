@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # This curious script dumps all model info from STC-ISP.
 # Data is directly read from the binary.
-# Offsets are for STC-ISP 6.63, md5sum 62d465a196de26fa3fb4b22c7be4b882.
+# Offsets are for STC-ISP 6.64, md5sum f82bf976e675326433bbfe5cd3fb9d85
 
-MCU_TABLE_OFFSET = 0x0004e270
-MCU_TABLE_SIZE = 648
+MCU_TABLE_OFFSET = 0x0004f2b0
+MCU_TABLE_SIZE = 655
 MCU_RECORD_SIZE = 32
-MCU_NAMES_OFFSET = 0x00062dc8
-MCU_NAMES_PTR_OFFSET = 0x00462dc8
+MCU_NAMES_OFFSET = 0x00063dc8
+MCU_NAMES_PTR_OFFSET = 0x00463dc8
 
 import struct
 import sys
