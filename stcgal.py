@@ -1059,7 +1059,7 @@ class Stc12Protocol:
 
         data = self.ser.read(num)
         if len(data) != num:
-            raise serial.SerialException("read timeout")
+            raise serial.SerialTimeoutException("read timeout")
 
         return data
 
@@ -1074,9 +1074,11 @@ class Stc12Protocol:
 
         # read and check frame start magic
         packet = bytes()
-        packet += self.read_bytes_safe(2)
-        if packet[0:2] != self.PACKET_START:
-            self.dump_packet(packet)
+        packet += self.read_bytes_safe(1)
+        if packet[0] != self.PACKET_START[0]:
+            raise StcFramingException("incorrect frame start")
+        packet += self.read_bytes_safe(1)
+        if packet[1] != self.PACKET_START[1]:
             raise StcFramingException("incorrect frame start")
 
         # read direction and length
@@ -1244,7 +1246,7 @@ class Stc12Protocol:
             try:
                 self.pulse()
                 status_packet = self.get_status_packet()
-            except (StcFramingException, serial.SerialException): pass
+            except (StcFramingException, serial.SerialTimeoutException): pass
         print("done")
 
         self.initialize_status(status_packet)
