@@ -4,7 +4,7 @@ stcgal - STC MCU flash tool
 stcgal is a command line flash programming tool for STC MCU Ltd. [1]
 8051 compatible microcontrollers. The name was inspired by avrdude [2].
 
-STC microcontrollers have a UART-based boot strap loader (BSL). It
+STC microcontrollers have a UART based boot strap loader (BSL). It
 utilizes a packet-based protocol to flash the code memory and IAP
 memory. The BSL is also used to configure various (fuse-like) device
 options. Unfortunately, this protocol is not publicly documented and
@@ -26,7 +26,7 @@ STC15F10x/STC15F20x MCU models.
 So far, stcgal was tested with the following MCU models:
 
 * STC89C52RC (BSL version: 4.3C)
-* STC12C5A60S2 (BSL version: 6.2L)
+* STC12C5A60S2 (BSL version: 6.2I)
 * STC11F08XE (BSL version: 6.5M)
 * STC15F104E (BSL version: 6.7Q)
 
@@ -45,7 +45,8 @@ Features
 Installation
 ------------
 
-stcgal requires Python 3.2 (or later) and pySerial.
+stcgal requires Python 3.2 (or later) and pySerial. Apart from that,
+no particular installation is required.
 
 Usage
 -----

@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 
-# stcgal - STC MCU serial bootloader flash programmer
+# stcgal - STC MCU serial BSL flash programmer
 
 import serial
 import sys, os, time, struct
