@@ -19,12 +19,13 @@ it is very portable and suitable for automation.
 Supported MCU models
 --------------------
 
-stcgal should fully support STC 10/11/12 series MCUs. STC 15 series
-support is unfinished, but should support all STC15F10x/STC15F20x
-series MCU models. STC 89/90 series support is work in progress.
+stcgal should fully support STC 89/90/10/11/12 series MCUs. STC
+15 series handling is unfinished, but should work with
+STC15F10x/STC15F20x MCU models.
 
 So far, stcgal was tested with the following MCU models:
 
+* STC89C52RC (BSL version: 4.3C)
 * STC12C5A60S2 (BSL version: 6.2L)
 * STC11F08XE (BSL version: 6.5M)
 * STC15F104E (BSL version: 6.7Q)
@@ -38,8 +39,8 @@ Features
 * Program flash memory
 * Program IAP/EEPROM
 * Set device options
-* Read unique device ID
-* Trim RC oscillator frequency (on STC 15 series)
+* Read unique device ID (STC 10/11/12/15)
+* Trim RC oscillator frequency (STC 15)
 
 Installation
 ------------

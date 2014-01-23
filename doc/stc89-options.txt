@@ -1,0 +1,22 @@
+Model-specific configuration registers
+Placement of configuration values
+
+"~" means the bit is a negated boolean. Sometimes values overlap,
+depending on MCU model.
+
+In STC89 series, there is only a single MCS byte.
+
+MCS0
+----
+
+MSB     7       6       5       4       3       2       1       0       LSB
+        ~WDEN   XRAM    ALE     OSCG    ~EERE   ~BSLD   0       ~CPU6T
+
+~WDEN := watchdog enable after power-on-reset
+XRAM := enable access to internal XRAM
+ALE := enable ALE pin function (otherwise, it's just regular GPIO)
+OSCG := high oscillator gain
+~EREE := enable eeprom erase next time MCU is programmed
+~BSLD := enable BSL pin detect; i.e. BSL is only enabled if P1.0/P1.1
+         (or others, depends on MCU model) are held low on POR.
+~CPU6T := enable double speed (6T cycles instead of 12T cycles) mode       

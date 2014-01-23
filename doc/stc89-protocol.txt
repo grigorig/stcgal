@@ -6,7 +6,9 @@ Differences to STC12:
 
 * Uses NONE parity instead of EVEN parity.
 
-* Checksum calculations are different: only a single-byte modular sum is used.
+* Status packet is sent without frame start magic.
+
+* Checksum calculations are different: a single-byte modular sum is used.
 
 * Baudrate handshake isn't initiated with a type 0x50 packet; this is simply
   skipped.
@@ -23,12 +25,16 @@ Differences to STC12:
   is simply skipped.
 
 * Baudrate handshake
-  - Uses normal speed (/32) UART timing instead of double speed (/16)
+  - Uses normal speed (/32) UART timing in 12T mode and double speed (/16)
+    in 6T mode
   - IAP delay has some differences (see datasheet)
 
 * Erase procedure
   - A different magic sequence is used
     (6 bytes with value 0x33)
-  - No size/range is supplied
+  - Only a single size is supplied
   - response code has type 0x80
+
+* Options
+  - Only a single option byte exists
 
