@@ -1211,13 +1211,13 @@ class Stc12Protocol(StcBaseProtocol):
 
         # baudrate is directly controlled by programming the MCU's BRT register
         brt = 256 - round((self.mcu_clock_hz) / (self.baud_transfer * 16))
+        if brt <= 1 or brt > 255:
+            raise StcProtocolException("requested baudrate cannot be set")
         brt_csum = (2 * (256 - brt)) & 0xff
-        try: baud_actual = (self.mcu_clock_hz) / (16 * (256 - brt))
-        except ZeroDivisionError:
-            raise StcProtocolException("requested baudrate too high for target")
+        baud_actual = (self.mcu_clock_hz) / (16 * (256 - brt))
         baud_error = (abs(self.baud_transfer - baud_actual) * 100.0) / self.baud_transfer
         if baud_error > 5.0:
-            print("WARNING: baud rate error is %.2f%%. You may need to set a slower rate." %
+            print("WARNING: baudrate error is %.2f%%. You may need to set a slower rate." %
                   baud_error, file=sys.stderr)
 
         # IAP wait states (according to datasheet(s))
