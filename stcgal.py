@@ -1007,8 +1007,8 @@ class Stc15Option(BaseOption):
         self.msr[12] |= 0x01 if not val else 0x00
 
 
-class Stc12Protocol:
-    """Protocol handler for STC 10/11/12 series"""
+class StcBaseProtocol:
+    """Basic functionality for STC BSL protocols"""
 
     """magic word that starts a packet"""
     PACKET_START = bytes([0x46, 0xb9])
@@ -1021,12 +1021,6 @@ class Stc12Protocol:
 
     """magic byte for packets sent by host"""
     PACKET_HOST = bytes([0x6a])
-
-    """block size for programming flash"""
-    PROGRAM_BLOCKSIZE = 128
-
-    """countdown value for flash erase"""
-    ERASE_COUNTDOWN = 0x0d
 
     def __init__(self, port, baud_handshake, baud_transfer):
         self.port = port
@@ -1062,6 +1056,68 @@ class Stc12Protocol:
             raise serial.SerialTimeoutException("read timeout")
 
         return data
+
+    def print_mcu_info(self):
+        """Print MCU status information"""
+
+        MCUModelDatabase.print_model_info(self.model)
+        print("Target frequency: %.3f MHz" % (self.mcu_clock_hz / 1E6))
+        print("Target BSL version: %s" % self.mcu_bsl_version)
+
+    def pulse(self):
+        """Send a sequence of 0x7f bytes for synchronization"""
+
+        while True:
+            self.ser.write(b"\x7f")
+            self.ser.flush()
+            time.sleep(0.015)
+            if self.ser.inWaiting() > 0: break
+
+    def initialize_model(self):
+        """Initialize model-specific information"""
+
+        try:
+            self.model = MCUModelDatabase.find_model(self.mcu_magic)
+        except NameError:
+            msg = ("WARNING: Unknown model %02X%02X!" %
+                (self.mcu_magic >> 8, self.mcu_magic & 0xff))
+            print(msg, file=sys.stderr)
+            self.model = MCUModelDatabase.MCUModel(name="UNKNOWN",
+                magic=self.mcu_magic, total=63488, code=63488, eeprom=0)
+        self.print_mcu_info()
+
+    def get_status_packet(self):
+        """Read and decode status packet"""
+
+        status_packet = self.read_packet()
+        if status_packet[0] != 0x50:
+            raise StcProtocolException("incorrect magic in status packet")
+        return status_packet
+
+    def set_option(self, name, value):
+        self.options.set_option(name, value)
+
+    def disconnect(self):
+        """Disconnect from MCU"""
+
+        # reset mcu
+        packet = bytes([0x82])
+        self.write_packet(packet)
+        self.ser.close()
+        print("Disconnected!")
+
+
+class Stc12Protocol(StcBaseProtocol):
+    """Protocol handler for STC 10/11/12 series"""
+
+    """block size for programming flash"""
+    PROGRAM_BLOCKSIZE = 128
+
+    """countdown value for flash erase"""
+    ERASE_COUNTDOWN = 0x0d
+
+    def __init__(self, port, baud_handshake, baud_transfer):
+        StcBaseProtocol.__init__(self, port, baud_handshake, baud_transfer)
 
     def read_packet(self):
         """Read and check packet from MCU.
@@ -1179,43 +1235,6 @@ class Stc12Protocol:
 
         return brt, brt_csum, iap_wait, delay
         
-    def print_mcu_info(self):
-        """Print MCU status information"""
-
-        MCUModelDatabase.print_model_info(self.model)
-        print("Target frequency: %.3f MHz" % (self.mcu_clock_hz / 1E6))
-        print("Target BSL version: %s" % self.mcu_bsl_version)
-
-    def pulse(self):
-        """Send a sequence of 0x7f bytes for synchronization"""
-
-        while True:
-            self.ser.write(b"\x7f")
-            self.ser.flush()
-            time.sleep(0.015)
-            if self.ser.inWaiting() > 0: break
-
-    def initialize_model(self):
-        """Initialize model-specific information"""
-
-        try:
-            self.model = MCUModelDatabase.find_model(self.mcu_magic)
-        except NameError:
-            msg = ("WARNING: Unknown model %02X%02X!" %
-                (self.mcu_magic >> 8, self.mcu_magic & 0xff))
-            print(msg, file=sys.stderr)
-            self.model = MCUModelDatabase.MCUModel(name="UNKNOWN",
-                magic=self.mcu_magic, total=63488, code=63488, eeprom=0)
-        self.print_mcu_info()
-
-    def get_status_packet(self):
-        """Read and decode status packet"""
-
-        status_packet = self.read_packet()
-        if status_packet[0] != 0x50:
-            raise StcProtocolException("incorrect magic in status packet")
-        return status_packet
-
     def initialize_options(self, status_packet):
         """Initialize options"""
 
@@ -1355,9 +1374,6 @@ class Stc12Protocol:
             raise StcProtocolException("incorrect magic in finish packet")
         print("done")
 
-    def set_option(self, name, value):
-        self.options.set_option(name, value)
-
     def program_options(self):
         print("Setting options: ", end="")
         sys.stdout.flush()
@@ -1378,15 +1394,6 @@ class Stc12Protocol:
             self.uid = response[18:25]
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
-
-    def disconnect(self):
-        """Disconnect from MCU"""
-
-        # reset mcu
-        packet = bytes([0x82])
-        self.write_packet(packet)
-        self.ser.close()
-        print("Disconnected!")
 
 
 class Stc15Protocol(Stc12Protocol):
