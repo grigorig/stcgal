@@ -26,6 +26,7 @@ STC15F10x/STC15F20x MCU models.
 So far, stcgal was tested with the following MCU models:
 
 * STC89C52RC (BSL version: 4.3C)
+* STC12C2052AD (BSL version: 5.8D)
 * STC12C5A60S2 (BSL version: 6.2I)
 * STC11F08XE (BSL version: 6.5M)
 * STC15F104E (BSL version: 6.7Q)

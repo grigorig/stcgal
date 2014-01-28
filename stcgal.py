@@ -860,6 +860,88 @@ class Stc89Option(BaseOption):
         self.msr &= 0x7f
         self.msr |= 0x80 if not bool(val) else 0x00
 
+
+class Stc12AOption(BaseOption):
+    """Manipulate STC12A series option bytes"""
+
+    def __init__(self, msr):
+        assert len(msr) == 5
+        self.msr = bytearray(msr)
+
+        """list of options and their handlers"""
+        self.options = (
+            ("low_voltage_detect", self.get_low_voltage_detect, self.set_low_voltage_detect),
+            ("clock_source", self.get_clock_source, self.set_clock_source),
+            ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
+            ("watchdog_stop_idle", self.get_watchdog_idle, self.set_watchdog_idle),
+            ("watchdog_prescale", self.get_watchdog_prescale, self.set_watchdog_prescale),
+            ("eeprom_erase_enabled", self.get_ee_erase, self.set_ee_erase),
+            ("bsl_pindetect_enabled", self.get_pindetect, self.set_pindetect),
+        )
+
+    def get_low_voltage_detect(self):
+        return not bool(self.msr[4] & 64)
+
+    def set_low_voltage_detect(self, val):
+        val = Utils.to_bool(val);
+        self.msr[4] &= 0xbf
+        self.msr[4] |= 0x40 if not val else 0x00
+
+    def get_clock_source(self):
+        source = bool(self.msr[0] & 2)
+        return "external" if source else "internal"
+
+    def set_clock_source(self, val):
+        sources = {"internal": 0, "external": 1}
+        if val not in sources.keys():
+            raise ValueError("must be one of %s" % list(sources.keys()))
+        self.msr[0] &= 0xfd
+        self.msr[0] |= sources[val] << 1
+
+    def get_watchdog(self):
+        return not bool(self.msr[1] & 32)
+
+    def set_watchdog(self, val):
+        val = Utils.to_bool(val);
+        self.msr[1] &= 0xdf
+        self.msr[1] |= 0x20 if not val else 0x00
+
+    def get_watchdog_idle(self):
+        return not bool(self.msr[1] & 8)
+
+    def set_watchdog_idle(self, val):
+        val = Utils.to_bool(val);
+        self.msr[1] &= 0xf7
+        self.msr[1] |= 0x08 if not val else 0x00
+
+    def get_watchdog_prescale(self):
+        return 2 ** (((self.msr[1]) & 0x07) + 1)
+
+    def set_watchdog_prescale(self, val):
+        val = Utils.to_int(val)
+        wd_vals = {2: 0, 4: 1, 8: 2, 16: 3, 32: 4, 64: 5, 128: 6, 256: 7}
+        if val not in wd_vals.keys():
+            raise ValueError("must be one of %s" % list(wd_vals.keys()))
+        self.msr[1] &= 0xf8
+        self.msr[1] |= wd_vals[val]
+
+    def get_ee_erase(self):
+        return not bool(self.msr[2] & 2)
+
+    def set_ee_erase(self, val):
+        val = Utils.to_bool(val);
+        self.msr[2] &= 0xfd
+        self.msr[2] |= 0x02 if not val else 0x00
+
+    def get_pindetect(self):
+        return not bool(self.msr[2] & 1)
+
+    def set_pindetect(self, val):
+        val = Utils.to_bool(val);
+        self.msr[2] &= 0xfe
+        self.msr[2] |= 0x01 if not val else 0x00
+
+
 class Stc12Option(BaseOption):
     """Manipulate STC10/11/12 series option bytes"""
 
@@ -1471,6 +1553,149 @@ class Stc89Protocol(StcBaseProtocol):
         print("done")
 
 
+class Stc12AProtocol(Stc89Protocol):
+
+    """countdown value for flash erase"""
+    ERASE_COUNTDOWN = 0x0d
+
+    def __init__(self, port, baud_handshake, baud_transfer):
+        Stc89Protocol.__init__(self, port, baud_handshake, baud_transfer)
+
+    def initialize_status(self, packet):
+        """Decode status packet and store basic MCU info"""
+
+        self.mcu_magic, = struct.unpack(">H", packet[20:22])
+
+        freq_counter = 0
+        for i in range(8):
+            freq_counter += struct.unpack(">H", packet[1+2*i:3+2*i])[0]
+        freq_counter /= 8.0
+        self.mcu_clock_hz = (self.baud_handshake * freq_counter * 12.0) / 7.0
+
+        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
+        self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
+                                           chr(bl_stepping))
+
+    def calculate_baud(self):
+        """Calculate MCU baudrate setting.
+
+        Calculate appropriate baudrate settings for the MCU's UART,
+        according to clock frequency and requested baud rate.
+        """
+
+        # baudrate is directly controlled by programming the MCU's BRT register
+        brt = 256 - round((self.mcu_clock_hz) / (self.baud_transfer * 16))
+        if brt <= 1 or brt > 255:
+            raise StcProtocolException("requested baudrate cannot be set")
+        brt_csum = (2 * (256 - brt)) & 0xff
+        baud_actual = (self.mcu_clock_hz) / (16 * (256 - brt))
+        baud_error = (abs(self.baud_transfer - baud_actual) * 100.0) / self.baud_transfer
+        if baud_error > 5.0:
+            print("WARNING: baudrate error is %.2f%%. You may need to set a slower rate." %
+                  baud_error, file=sys.stderr)
+
+        # IAP wait states (according to datasheet(s))
+        iap_wait = 0x80
+        if self.mcu_clock_hz < 1E6: iap_wait = 0x87
+        elif self.mcu_clock_hz < 2E6: iap_wait = 0x86
+        elif self.mcu_clock_hz < 3E6: iap_wait = 0x85
+        elif self.mcu_clock_hz < 6E6: iap_wait = 0x84
+        elif self.mcu_clock_hz < 12E6: iap_wait = 0x83
+        elif self.mcu_clock_hz < 20E6: iap_wait = 0x82
+        elif self.mcu_clock_hz < 24E6: iap_wait = 0x81
+
+        # MCU delay after switching baud rates
+        delay = 0x80
+
+        return brt, brt_csum, iap_wait, delay
+
+    def initialize_options(self, status_packet):
+        """Initialize options"""
+
+        # create option state
+        self.options = Stc12AOption(status_packet[23:28])
+        self.options.print()
+
+    def handshake(self):
+        """Do baudrate handshake
+
+        Initate and do the (rather complicated) baudrate handshake.
+        """
+
+        # start baudrate handshake
+        print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
+        brt, brt_csum, iap, delay = self.calculate_baud()
+        print("checking ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x8f, 0xc0, brt, 0x3f, brt_csum, delay, iap])
+        self.write_packet(packet)
+        time.sleep(0.2)
+        self.ser.baudrate = self.baud_transfer
+        response = self.read_packet()
+        self.ser.baudrate = self.baud_handshake
+        if response[0] != 0x8f:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # switch to the settings
+        print("setting ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x8e, 0xc0, brt, 0x3f, brt_csum, delay])
+        self.write_packet(packet)
+        time.sleep(0.2)
+        self.ser.baudrate = self.baud_transfer
+        response = self.read_packet()
+        if response[0] != 0x8e:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # ping-pong test
+        print("testing ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x80, 0x00, 0x00, 0x36, 0x01])
+        packet += struct.pack(">H", self.mcu_magic)
+        for i in range(4):
+            self.write_packet(packet)
+            response = self.read_packet()
+            if response[0] != 0x80:
+                raise StcProtocolException("incorrect magic in handshake packet")
+
+        print("done")
+
+    def erase_flash(self, erase_size, flash_size):
+        """Erase the MCU's flash memory.
+
+        Erase the flash memory with a block-erase command.
+        """
+
+        blks = ((erase_size + 511) // 512) * 2
+        size = ((flash_size + 511) // 512) * 2
+        print("Erasing %d blocks: " % blks, end="")
+        sys.stdout.flush()
+        packet = bytes([0x84, 0xff, 0x00, blks, 0x00, 0x00, size,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00])
+        for i in range(0x80, self.ERASE_COUNTDOWN, -1): packet += bytes([i])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x80:
+            raise StcProtocolException("incorrect magic in erase packet")
+        print("done")
+
+    def program_options(self):
+        print("Setting options: ", end="")
+        sys.stdout.flush()
+        msr = self.options.get_msr()
+        packet = bytes([0x8d, msr[0], msr[1], msr[2], msr[3],
+                        msr[4]])
+
+        packet += struct.pack(">I", int(self.mcu_clock_hz))
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x80:
+            raise StcProtocolException("incorrect magic in option packet")
+        print("done")
+
+
 class Stc12Protocol(StcBaseProtocol):
     """Protocol handler for STC 10/11/12 series"""
 
@@ -1957,6 +2182,8 @@ class StcGal:
         self.opts = opts
         if opts.protocol == "stc89":
             self.protocol = Stc89Protocol(opts.port, opts.handshake, opts.baud)
+        elif opts.protocol == "stc12a":
+            self.protocol = Stc12AProtocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc12":
             self.protocol = Stc12Protocol(opts.port, opts.handshake, opts.baud)
         else:
@@ -2052,7 +2279,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="STC MCU ISP flash tool")
     parser.add_argument("code_binary", help="code segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_binary", help="eeprom segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
-    parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12", "stc15"], default="stc12")
+    parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15"], default="stc12")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
