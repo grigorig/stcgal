@@ -56,6 +56,10 @@ Usage
 
 See ```stcgal.py -h``` for usage information.
 
+Please note that stcgal only handles raw binary encoded files at this
+point. You can easily convert common Intel HEX files with
+```objcopy -I ihex -O binary input.hex output.bin```.
+
 BSL Protocol
 ------------
 
