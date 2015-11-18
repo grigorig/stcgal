@@ -30,6 +30,8 @@ So far, stcgal was tested with the following MCU models:
 * STC12C5A60S2 (BSL version: 6.2I)
 * STC11F08XE (BSL version: 6.5M)
 * STC15F104E (BSL version: 6.7Q)
+* STC15F204EA (BSL version: 6.7R)
+* STC15L104W (BSL version: 7.1Q)
 
 More compatibility testing is going to happen soon.
 
