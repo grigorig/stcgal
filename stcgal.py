@@ -28,8 +28,6 @@ import sys, os, time, struct
 import argparse
 import collections
 
-DEBUG = False
-
 class Utils:
     @classmethod
     def to_bool(self, val):
@@ -1449,9 +1447,10 @@ class StcBaseProtocol:
         self.options = None
         self.model = None
         self.uid = None
+        self.debug = False
 
     def dump_packet(self, data, receive=True):
-        if DEBUG:
+        if self.debug:
             print("%s Packet data: %s" % (("<-" if receive else "->"),
                   Utils.hexstr(data, " ")))
 
@@ -2446,6 +2445,7 @@ class StcGal:
         else:
             self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud,
                                           round(opts.trim * 1000))
+        self.protocol.debug = opts.debug
 
     def emit_options(self, options):
         for o in options:
@@ -2542,6 +2542,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
     parser.add_argument("-o", "--option", help="set option (can be used multiple times)", action="append")
     parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15 series only)", type=float, default=0.0)
+    parser.add_argument("-D", "--debug", help="enable debug output", action="store_true")
     opts = parser.parse_args()
     
     # run programmer
