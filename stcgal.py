@@ -2515,15 +2515,18 @@ class StcGal:
                 self.protocol.disconnect()
                 return 0
         except NameError as e:
+            sys.stdout.flush();
             print("Option error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
         except (StcFramingException, StcProtocolException) as e:
+            sys.stdout.flush();
             print("Protocol error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
         except KeyboardInterrupt:
-            print("interrupted")
+            sys.stdout.flush();
+            print("interrupted", file=sys.stderr)
             self.protocol.disconnect()
             return 2
         except serial.SerialException as e:
