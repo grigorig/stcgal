@@ -2854,13 +2854,16 @@ class StcGal:
     def run(self):
         try: self.protocol.connect()
         except KeyboardInterrupt:
+            sys.stdout.flush();
             print("interrupted")
             return 2
         except (StcFramingException, StcProtocolException) as e:
+            sys.stdout.flush();
             print("Protocol error: %s" % e, file=sys.stderr)
             self.protocol.disconnect()
             return 1
         except serial.SerialException as e:
+            sys.stdout.flush();
             print("Serial port error: %s" % e, file=sys.stderr)
             return 1
 
