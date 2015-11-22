@@ -1,92 +1,161 @@
-STC15 reverse engineering
+STC15 protocol
+==============
 
-Note: so far only based on STC15F104E!
+high level
+----------
 
+-> pulse
+<- info packet
 
-Basic differences between STC12 and STC15
+-> freq challenges round 1
+<- freq responses
 
-* Initial MCU response is an ack (0x80) packet. Host needs to respond
-  with the same ack and pulse 0x7f again, then MCU sends the info
-  packet.
+-> freq challenges round 2
+<- freq responses
 
-* Frequency timings sent with info packet are different; the calculation
-  is the same but only four timings are sent, followed by two other
-  unknown timings and two zero words.
+-> baud switch
+<- ack
 
-* A new handshake is used to tune the RC oscillator for a given
-  frequency.
+-> prepare
+<- ack
 
-* The baudrate isn't changed with a complicated handshake, it is just
-  switched to with a 0x8e type packet.
-  This may be different on other MCUs that have a hardware UART.
+-> erase
+<- ack + uid
 
-* Transfers use 64 bytes block size.
-  Possibly that's because the 15F104E only has 128 bytes RAM. It
-  might use bigger blocks on MCUs with more RAM.
+-> write first block
+<- ack
 
-* Position of many option bits has changed, and more bits are used.
+-> write block 2
+<- ack
 
+...
 
-The RC oscillator calibration
+-> write block n
+<- ack
 
-Theory of operation:
-* Host sends a sequence of challenges. These are values to be
-  programmed into an internal RC oscillator calibration register.
-* Host sends 0x7f pulses
-* MCU sends back responses, which are the runtime of the baudrate
-  timing counter (similar to the info packet)
-* Host repeats this with finer trimmed challenge values.
-* Host determines calibration value with the lowest error.
-* Host sends baudrate switch packet
-* Host sends option packet to program frequency after flash programming
-
-The STC software uses a fixed set of coarse grained trim values to
-try. These are:
-
-sequence                        clock (MHz)
-0x1800 0x1880 0x1880 0x18ff     [4, 7.5]
-0x1880 0x18ff 0x5800 0x5880     (7.5, 10]
-0x5800 0x5880 0x5880 0x58ff     (10, 15]
-0x5880 0x58ff 0x9800 0x9880     (15, 21]
-0x9800 0x9880 0x9880 0x98ff     (21, 31] 
-0xd800 0xd880 0xd880 0xd8b4     (31, 40]
-
-In addition it sends a sequence for the programming speed:
-0x5800 0x5880 for normal speed and 0x9800 0x9880 for high
-speed programming.
-
-Then, by linear interpolation, it choses a suitable range of
-fine-tuning trim values to try according to the counter values sent
-by the MCU.
-
-The programming speed trim value is only determined by linear
-interpolation of the two trim challenges sent in the first round of
-calibration. This seems to be good enough.
+-> option packet
+<- ack
 
 
-New packets host2mcu
---------------------
+info packet
+-----------
 
-1. RC calibration challenge
+6 MHz:
+46 B9 68 00 2B 50 66 3C 93 BA F7 BB 9F 00 5B 68 00 FD 00 00 00 00 71 51 03 F2 D4 04 06 58 BA 02 2A 31 32 38 30 80 14 10 04 D9 0D 02 16
 
-Payload: 0x65, T0, .., T6, 0xff, 0xff, 0x06, CNT,
-         TR00, TR01, 0x02, 0x00,
-         TR10, TR11, 0x02, 0x00,
-         ...
+12 MHz:
+46 B9 68 00 2B 50 66 3C 93 BA F7 BB 9F 00 B6 F5 80 FD 00 00 00 00 71 51 03 F2 D4 04 06 58 BA 02 2A 31 32 38 30 80 14 10 04 D9 0E 6A 16
 
-T0...T6 := trim constants, from info packet
-CNT := number of calibration challenges (max 11)
-TRxx := calibration challenge trim values
+33 MHz:
+46 B9 68 00 2B 50 66 3C 93 BA F7 B9 9F 01 F7 C2 80 FD 00 00 00 00 71 51 03 F2 D4 04 06 58 BA 02 2A 31 32 38 30 80 14 10 04 D9 0E 77 16
 
-2. Baudrate switch
+30 MHz:
+46 B9 68 00 2B 50 66 3C 93 BA F7 B9 9F 01 C9 9E 00 FD 7F FF FD FF 71 51 03 F2 D4 04 06 58 BA 02 2A 31 32 38 30 80 14 10 04 D9 11 1F 16
+                  ^^^^^                ^^^^^^^^^^^
+                  timer freq           freq big endian
+                  value in hz          32 bit value
+                              ^^^^^^^^             ^^
+                              MCS2-4               MCSX
+                           ^^
+                           factory calibration adjust for 24 MHz (range 0x40)?
+         
+IAP15F2K61S2:                  
+external osc:
+46 B9 68 00 2B 50 87 D3 75 9C F7 BB 9E 01 77 70 80 FD 06 57 00 00 71 53 00 F4 49 04 06 58 9C 02 0E 14 17 19 19 00 F4 F4 04 D2 0E 8A 16
+                                                      ^^^^^
+                                                      frequency count for external (1)
 
-Payload: 0x8e, TR0, TR1, BDIV, 0xa1, 0x64, FC,
-         0x00, IAP, 0x20, 0xff, 0x00
+(1) if external clock is active, frequency can be calculated like:
+CLOCK = BAUD * COUNT
+                                                    
+internal 11.052 MHz:
+46 B9 68 00 2B 50 87 D3 75 9C F7 BB 9F 00 A8 AD 40 FD 09 FE 00 00 71 53 00 F4 49 04 06 58 9C 02 0E 14 17 19 19 00 F4 F4 04 D2 0F 62 16
 
-TR0, TR1 := trim value for programming frequency
-            (normal = 11.0592 MHz, highspeed = 22.1184 MHz)
-BDIV := baud rate divider (normal: baud = 115200 / BDIV, highspeed: baud = 230400 / BDIV)
-FC := some frequency constant, normal: 0xdc, highspeed: 0xb8
-IAP := IAP delay, normal: 0x83, highspeed: 0x81
+      
+i.e. operating frequency is not sampled from host pulses! it's actually much more
+convenient, it is simply returned as an integer value in hz. same for the wakeup
+timer.
+
+baud switch packet
+------------------
+
+46 B9 6A 00 0E 01 8C 40 F6 FD F2 7C 83 05 29 16
+                        ^^^^^ ^^^^^ ^^
+                        (1)   (2)   (3) 
+                  ^^^^^
+                  prog calib. values  
+(1) baud value (65535 - clk / baud) (SW UART)
+               (65535 - clk / baud / 4) (HW UART)
+(2) some timer value (65535 - (clk / baud) * 1.5)
+(3) constant? IAP delay?
+
+
+trim challenge packet
+---------------------
+
+two challenges are sent, UART seems to be used as clock reference
+
+33.1 MHz @ 9600 bps:
+-> 46 B9 6A 00 20  00 0B 00 C0 80 C0 FF C0 00 80 80 80 FF 80 00 40 80 40 FF 40 00 00 80 00 00 00  0A 12 16 92 92 92 92
+
+4 MHz @ 9600 bps:
+-> 46 B9 6A 00 20  00 0B 00 C0 80 C0 FF C0 00 80 80 80 FF 80 00 40 80 40 FF 40 00 00 80 00 00 00  0A 12 16 92 92 92 92
+
+6 MHz @ 9600 bps:
+-> 46 B9 6A 00 20  00 0B 00 C0 80 C0 FF C0 00 80 80 80 FF 80 00 40 80 40 FF 40 00 00 80 00 00 00  0A 12 16 92 92 92 92
+<- 46 B9 68 00 20  00 0B 03 05 04 4F 05 9E 06 20 08 B9 0B 57 0C 60 11 6A 16 5B 13 5E 1A D4 00 00  05 91 16
+
+-> 46 B9 6A 00 20  00 0C B4 C0 B5 C0 B6 C0 B7 C0 B8 C0 B9 C0 8C 40 8D 40 8E 40 8F 40 90 40 91 40  0E 34 16 92 92 92 92
+<- 46 B9 68 00 20  00 0C 04 DB 04 DB 04 DB 04 E0 04 E5 04 E5 11 EC 11 F6 12 05 12 05 12 0F 12 14  08 60 16
+
+12 MHz @ 9600 bps:
+-> 46 B9 6A 00 20  00 0B 00 C0 80 C0 FF C0 00 80 80 80 FF 80 00 40 80 40 FF 40 00 00 80 00 00 00  0A 12 16 92 92 92 92
+<- 46 B9 68 00 20  00 0B 03 05 04 4F 05 99 06 20 08 B4 0B 52 0C 65 11 6F 16 56 13 5E 1A D4 00 00  05 87 16
+
+-> 46 B9 6A 00 20  00 0C B0 80 B1 80 B2 80 B3 80 B4 80 B5 80 8B 40 8C 40 8D 40 8E 40 8F 40 90 40  0C 96 16 92 92 92 92
+<- 46 B9 68 00 20  00 0C 09 B8 09 BD 09 C2 09 C7 09 C7 09 D1 11 DD 11 EC 11 FB 12 00 12 0A 12 0F  08 A6 16
+                   ^^^^^
+                   number of challenges used (here: 12)
+ 
+looks like two byte calibration values are used; second byte is the rough value, first byte is fine adjust
+first round selects a rough range
+second round refines inside that range and another (for programming speed)
+
+(CLOCK / (BAUD/2)) = COUNTER
+=> CLOCK = COUNTER * (BAUD/2)
+
+the first packet always uses a fixed set of challenges.
+first calibration byte of chosen frequency is stored in options. the second calibration byte is stored added together
+with the value 0x3f in the next option byte.
+a factory frequency value (24 MHz) is available in the info packet.
+the calibration value for the programming frequency (always range 0x40) is transmitted with the baud change packet.
+
+
+option packet
+-------------
+
+46 B9 6A 00 49 04 00 00 FF FF FF 00 FF FF 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 FF 5B FF 68 FF 00
+                                                                                             ^^^^^^^^^^^^^^^^^^^^
+                                                                                             frequency in hz, with FF bytes inbetween
+
+FF FD FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF B5 FF F7 BB 9F 3A 48 16
+   ^                                                                                   ^^^^^^^^^^^^^^ 
+   MCSX                                                                                MCS0-4
+   
+
+MCS bytes
+---------
+
+### MCS0
+
+RC calibration adjust
+
+### MCS1
+
+0x3f + RC calibration range (0x00, 0x40, 0x80, 0xc0)
+
+### MCS2 - MCS4 and MCSX
+
+See stc15-options.txt
 
 

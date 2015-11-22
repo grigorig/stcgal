@@ -1,81 +1,82 @@
-Model-specific configuration registers
-Placement of configuration values
+STC15 series MCS bytes
+======================
 
-"~" means the bit is a negated boolean. Sometimes values overlap,
-depending on MCU model.
+MCS3 is like early STC15 MCS1.
+MCS2 is like early STC15 MCS2.
+MCS4 is like early STC15 MCS0 but with additions.
+MCSX is like early STC15 MCS12.
 
-In STC15 series, the first 13 MCS bytes have active values. Generally,
-unused bits should be set to 1.
+baseline
+B5 FF F7 BB 9F
 
-MCS0
-----
+long por disabled
+B6 FF F7 BB 1F
+--> MCS4 bit 7 controls POR delay. low => short, high => long
 
-MSB     7       6       5       4       3       2       1       0       LSB
-                                RSPEN
+reset pin as io disabled
+B8 FF F7 BB 8F
+--> MCS4 bit 4 controls reset pin. low => reset is normal, high => reset is io
 
-RSPEN := RESET pin enable
+low voltage reset disabled
+B6 FF F7 FB 9F
+--> MCS3 bit 6 controls low voltage reset. low => lv reset enabled, high => disabled
 
+lvd threshold 2.61v
+B8 FF F7 BA 9F
+lvd threshold 2.82v
+B5 FF F7 B9 9F
+lvd threshold 3.08v
+B6 FF F7 B8 9F
 
-MCS1
-----
+--> MCS3 bits 0-2 control LVD threshold setting. exact mapping not yet clear.
 
-MSB     7       6       5       4       3       2       1       0       LSB
-        EEIH    LVRS                            LVD2    LVD1    LVD0
+eeprom lv inhibit disabled
+B7 FF F7 3B 9F
+--> MCS3 bit 7 controls eeprom lv inhibit. high => eeprom lv inhibit enabled, low => disabled
 
-EEIH := inhibit EEPROM writes in low-voltage conditions enable
-LVRS := low-voltage reset enable
-LVD2...LVD0 := low voltage detection threshold
+watchdog after reset enabled
+B6 FF D7 BB 9F
+--> MCS2 bit 5 controls watchdog after reset. high => disabled, low => enabled
 
-LVD2    LVD1    LVD0    value
-0       0       0       setting 0 (e.g. 3.14V)
-0       0       1       setting 1 (e.g. 3.28V)
-0       1       0       setting 2 (e.g. 3.43V)
-0       1       1       setting 3 (e.g. 3.61V)
-1       0       0       setting 4 (e.g. 3.82V)
-1       0       1       setting 5 (e.g. 4.05V)
-1       1       0       unknown
-1       1       1       unknown
+watchdog prescaler 128
+B4 FF F6 BB 9F
+watchdog prescaler 64
+B5 FF F5 BB 9F
+watchdog prescaler 32
+B5 FF F4 BB 9F
+watchdog prescaler 2
+B6 FF F0 BB 9F
+--> MCS2 bits 0-2 control watchdog prescaler. mapping is similar to early STC15.
 
-The exact voltages depend on MCU model.
+wdt stop in idle disabled
+B7 FF FF BB 9F
 
-
-MCS2
-----
-
-MSB     7       6       5       4       3       2       1       0       LSB
-                        ~WDEN           ~WDSTP  WDPS2   WDPS1   WDPS0
-
-~WDEN := watchdog enable after power-on-reset
-~WDSTP := stop watchdog counter in idle mode
-WDPS2...WDPS0 := watchdog counter prescaler
-
-WDPS2   WDPS1   WDPS0   divisior
-0       0       0       2 
-0       0       1       4
-0       1       0       8
-0       1       1       16
-1       0       0       32
-1       0       1       64
-1       1       0       128
-1       1       1       256
-
-This is completely similar to STC12.
+erase eeprom next programming
+B4 FF F7 BB 9F
+--> it's somewhere else! it's bit 1 of the extra MCSX byte that is typically 0xfd. low => erase eeprom disabled, high => erase eeprom enabled
 
 
-MCS3...MCS11
-------------
+p3.3 por state enabled
+B9 FF F7 BB 97
+--> MCS4 bit 3 controls the p3.3 state. high => p3.3 high, low => p3.3 low
 
-All bytes set to 0xff.
+p3.1 passthrough from p3.0 enabled
+B5 FF F7 BB DF
+--> MCS4 bit 2 controls the p3.1 passthrough. low => passthrough disabled, high => passthrough enabled
+
+p3.1 push pull enabled
+B5 FF F7 BB BF
+--> MCS4 bit 1 controls p3.1 push pull. low => quasi-bidi, high => push-pull
+
+bsl pindetect enabled
+B5 FF F7 BB BF
+--> somewhere else, MCSX bit 0. low => pindetect enabled, high => pindetect disabled.
 
 
-MCS12
------
+external oscillator enabled (IAP15F2K61S2)
+9C 7F F7 BB 9E
+--> MCS4 bit 0 controls external oscillator. low => use external crystal, high => use RC.
 
-MSB     7       6       5       4       3       2       1       0       LSB
-                                                        ~EREE   ~BSLD
-
-~EREE := enable eeprom erase next time MCU is programmed
-~BSLD := enable BSL pin detect; i.e. BSL is only enabled if P1.0/P1.1
-         (or others, depends on MCU model) are held low on POR.
-
-This is like MCS3 of STC12.
+external oscillator enabled + clock gain low (IAP15F2K61S2)
+9C 7F F7 BB 9C
+--> MCS 4 bit controls clock gain. high => high clock gain, low => low clock gain.

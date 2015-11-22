@@ -1,0 +1,81 @@
+Model-specific configuration registers
+Placement of configuration values
+
+"~" means the bit is a negated boolean. Sometimes values overlap,
+depending on MCU model.
+
+In STC15 series, the first 13 MCS bytes have active values. Generally,
+unused bits should be set to 1.
+
+MCS0
+----
+
+MSB     7       6       5       4       3       2       1       0       LSB
+                                RSPEN
+
+RSPEN := RESET pin enable
+
+
+MCS1
+----
+
+MSB     7       6       5       4       3       2       1       0       LSB
+        EEIH    LVRS                            LVD2    LVD1    LVD0
+
+EEIH := inhibit EEPROM writes in low-voltage conditions enable
+LVRS := low-voltage reset enable
+LVD2...LVD0 := low voltage detection threshold
+
+LVD2    LVD1    LVD0    value
+0       0       0       setting 0 (e.g. 3.14V)
+0       0       1       setting 1 (e.g. 3.28V)
+0       1       0       setting 2 (e.g. 3.43V)
+0       1       1       setting 3 (e.g. 3.61V)
+1       0       0       setting 4 (e.g. 3.82V)
+1       0       1       setting 5 (e.g. 4.05V)
+1       1       0       unknown
+1       1       1       unknown
+
+The exact voltages depend on MCU model.
+
+
+MCS2
+----
+
+MSB     7       6       5       4       3       2       1       0       LSB
+                        ~WDEN           ~WDSTP  WDPS2   WDPS1   WDPS0
+
+~WDEN := watchdog enable after power-on-reset
+~WDSTP := stop watchdog counter in idle mode
+WDPS2...WDPS0 := watchdog counter prescaler
+
+WDPS2   WDPS1   WDPS0   divisior
+0       0       0       2 
+0       0       1       4
+0       1       0       8
+0       1       1       16
+1       0       0       32
+1       0       1       64
+1       1       0       128
+1       1       1       256
+
+This is completely similar to STC12.
+
+
+MCS3...MCS11
+------------
+
+All bytes set to 0xff.
+
+
+MCS12
+-----
+
+MSB     7       6       5       4       3       2       1       0       LSB
+                                                        ~EREE   ~BSLD
+
+~EREE := enable eeprom erase next time MCU is programmed
+~BSLD := enable BSL pin detect; i.e. BSL is only enabled if P1.0/P1.1
+         (or others, depends on MCU model) are held low on POR.
+
+This is like MCS3 of STC12.
