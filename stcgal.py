@@ -2688,8 +2688,12 @@ class Stc15XProtocol(Stc15Protocol):
         print("Switching to %d baud: " % self.baud_transfer, end="")
         packet = bytes([0x01])
         packet += bytes(prog_trim)
-        packet += struct.pack(">H", int(65535 - program_speed / self.baud_transfer))
-        packet += struct.pack(">H", int(65535 - (program_speed / self.baud_transfer) * 1.5))
+        # XXX: need to divide by four only in case there's a hardware UART
+        # looks like there is only a single chip in the series that does not
+        # have one. we can isolate it with the magic id.
+        bauds = self.baud_transfer if (self.mcu_magic >> 8) == 0xf2 else self.baud_transfer * 4
+        packet += struct.pack(">H", int(65535 - program_speed / bauds))
+        packet += struct.pack(">H", int(65535 - (program_speed / bauds) * 1.5))
         packet += bytes([0x83])
         self.write_packet(packet)
         response = self.read_packet()
