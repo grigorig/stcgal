@@ -1428,6 +1428,8 @@ class Stc15XOption(BaseOption):
 
         self.options = (
             ("reset_pin_enabled", self.get_reset_pin_enabled, self.set_reset_pin_enabled),
+            ("clock_source", self.get_clock_source, self.set_clock_source),
+            ("clock_gain", self.get_clock_gain, self.set_clock_gain),
             ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
             ("watchdog_stop_idle", self.get_watchdog_idle, self.set_watchdog_idle),
             ("watchdog_prescale", self.get_watchdog_prescale, self.set_watchdog_prescale),
@@ -1449,6 +1451,28 @@ class Stc15XOption(BaseOption):
         val = Utils.to_bool(val);
         self.msr[2] &= 0xef
         self.msr[2] |= 0x10 if not bool(val) else 0x00
+
+    def get_clock_source(self):
+        source = bool(self.msr[2] & 0x01)
+        return "internal" if source else "external"
+
+    def set_clock_source(self, val):
+        sources = {"internal": 1, "external": 0}
+        if val not in sources.keys():
+            raise ValueError("must be one of %s" % list(sources.keys()))
+        self.msr[2] &= 0xfe
+        self.msr[2] |= sources[val]
+
+    def get_clock_gain(self):
+        gain = bool(self.msr[2] & 0x02)
+        return "high" if gain else "low"
+
+    def set_clock_gain(self, val):
+        gains = {"low": 0, "high": 1}
+        if val not in gains.keys():
+            raise ValueError("must be one of %s" % list(gains.keys()))
+        self.msr[2] &= 0xfd
+        self.msr[2] |= gains[val] << 1
 
     def get_watchdog(self):
         return not bool(self.msr[0] & 32)
@@ -2586,7 +2610,18 @@ class Stc15XProtocol(Stc15Protocol):
 
         self.mcu_magic, = struct.unpack(">H", packet[20:22])
 
-        self.mcu_clock_hz, = struct.unpack(">I", packet[8:12])
+        # check bit that control internal vs. external clock source
+        # get frequency either stored from calibration or from
+        # frequency counter
+        self.external_clock = (packet[7] & 0x01) == 0
+        if self.external_clock:
+            count, = struct.unpack(">H", packet[13:15])
+            self.mcu_clock_hz = self.baud_handshake * count
+        else:
+            self.mcu_clock_hz, = struct.unpack(">I", packet[8:12])
+
+        # pre-calibrated trim adjust for 24 MHz, range 0x40
+        self.freq_count_24 = packet[4]
 
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
@@ -2595,7 +2630,8 @@ class Stc15XProtocol(Stc15Protocol):
 
 
     def choose_range(self, packet, response, target_count):
-        """Choose appropriate trim value mean for next round"""
+        """Choose appropriate trim value mean for next round from challenge
+        responses."""
 
         calib_data = response[2:]
         challenge_data = packet[2:]
@@ -2632,8 +2668,9 @@ class Stc15XProtocol(Stc15Protocol):
 
         return best
 
-    def handshake(self):
-        """Do the handshake. Somewhat similar to early STC15."""
+    def calibrate(self):
+        """Calibrate selected user frequency and the high-speed program
+        frequency and switch to selected baudrate."""
 
         # determine target counters
         user_speed = self.trim_frequency
@@ -2688,9 +2725,10 @@ class Stc15XProtocol(Stc15Protocol):
         print("Switching to %d baud: " % self.baud_transfer, end="")
         packet = bytes([0x01])
         packet += bytes(prog_trim)
-        # XXX: need to divide by four only in case there's a hardware UART
-        # looks like there is only a single chip in the series that does not
-        # have one. we can isolate it with the magic id.
+        # XXX: baud rate calculation is different between MCUs with and without
+        # hardware UART. Only one family of models seems to lack a hardware
+        # UART, and we can isolate those with a check on the magic.
+        # This is a bit of a hack, but it works.
         bauds = self.baud_transfer if (self.mcu_magic >> 8) == 0xf2 else self.baud_transfer * 4
         packet += struct.pack(">H", int(65535 - program_speed / bauds))
         packet += struct.pack(">H", int(65535 - (program_speed / bauds) * 1.5))
@@ -2701,6 +2739,36 @@ class Stc15XProtocol(Stc15Protocol):
             raise StcProtocolException("incorrect magic in handshake packet")
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
+
+    def switch_baud_ext(self):
+        """Switch baudrate using external clock source"""
+
+        print("Switching to %d baud: " % self.baud_transfer, end="")
+        packet = bytes([0x01])
+        packet += bytes([self.freq_count_24, 0x40])
+        packet += struct.pack(">H", int(65535 - self.mcu_clock_hz / self.baud_transfer / 4))
+        packet += bytes([0x00, 0x00, 0x83])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x01:
+            raise StcProtocolException("incorrect magic in handshake packet")
+        time.sleep(0.2)
+        self.ser.baudrate = self.baud_transfer
+
+        # for switching back to RC, program factory values
+        self.trim_value = (self.freq_count_24, 0x40)
+        self.trim_frequency = int(24E6)
+
+    def handshake(self):
+        """Do the handshake to calibrate frequencies and switch to
+        programming baudrate. Complicated by the fact that programming
+        can also use the external clock."""
+
+        # external clock needs special handling
+        if self.external_clock:
+            self.switch_baud_ext()
+        else:
+            self.calibrate()
 
         # test/prepare
         packet = bytes([0x05])
