@@ -1323,7 +1323,7 @@ class Stc12Option(BaseOption):
         self.msr[3] |= 0x01 if not val else 0x00
 
 
-class Stc15Option(BaseOption):
+class Stc15AOption(BaseOption):
     def __init__(self, msr):
         assert len(msr) == 13
         self.msr = bytearray(msr)
@@ -1421,7 +1421,7 @@ class Stc15Option(BaseOption):
         self.msr[12] |= 0x01 if not val else 0x00
 
 
-class Stc15XOption(BaseOption):
+class Stc15Option(BaseOption):
     def __init__(self, msr):
         assert len(msr) == 4
         self.msr = bytearray(msr)
@@ -2374,7 +2374,7 @@ class Stc12Protocol(StcBaseProtocol):
         print("Target UID: %s" % Utils.hexstr(self.uid))
 
 
-class Stc15Protocol(Stc12Protocol):
+class Stc15AProtocol(Stc12Protocol):
     """Protocol handler for STC 15 series"""
 
     ERASE_COUNTDOWN = 0x5e
@@ -2391,7 +2391,7 @@ class Stc15Protocol(Stc12Protocol):
         """Initialize options"""
 
         # create option state
-        self.options = Stc15Option(status_packet[23:36])
+        self.options = Stc15AOption(status_packet[23:36])
         self.options.print()
 
     def get_status_packet(self):
@@ -2590,11 +2590,11 @@ class Stc15Protocol(Stc12Protocol):
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
 
-class Stc15XProtocol(Stc15Protocol):
+class Stc15Protocol(Stc15AProtocol):
     """Protocol handler for later STC 15 series"""
 
     def __init__(self, port, handshake, baud, trim):
-        Stc15Protocol.__init__(self, port, handshake, baud, trim)
+        Stc15AProtocol.__init__(self, port, handshake, baud, trim)
 
         self.trim_value = None
 
@@ -2602,7 +2602,7 @@ class Stc15XProtocol(Stc15Protocol):
         """Initialize options"""
 
         # create option state
-        self.options = Stc15XOption(status_packet[5:8] + status_packet[12:13])
+        self.options = Stc15Option(status_packet[5:8] + status_packet[12:13])
         self.options.print()
 
     def initialize_status(self, packet):
@@ -2863,11 +2863,11 @@ class StcGal:
             self.protocol = Stc12AProtocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc12":
             self.protocol = Stc12Protocol(opts.port, opts.handshake, opts.baud)
-        elif opts.protocol == "stc15":
-            self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud,
+        elif opts.protocol == "stc15a":
+            self.protocol = Stc15AProtocol(opts.port, opts.handshake, opts.baud,
                                           round(opts.trim * 1000))
         else:
-            self.protocol = Stc15XProtocol(opts.port, opts.handshake, opts.baud,
+            self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud,
                                           round(opts.trim * 1000))
 
         self.protocol.debug = opts.debug
@@ -2967,7 +2967,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="stcgal - an STC MCU ISP flash tool")
     parser.add_argument("code_binary", help="code segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_binary", help="eeprom segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
-    parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15", "stc15x"], default="stc12")
+    parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15"], default="stc12")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
