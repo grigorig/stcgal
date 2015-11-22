@@ -2623,11 +2623,19 @@ class Stc15Protocol(Stc15AProtocol):
         # pre-calibrated trim adjust for 24 MHz, range 0x40
         self.freq_count_24 = packet[4]
 
+        # wakeup timer factory value
+        self.wakeup_freq, = struct.unpack(">H", packet[1:3])
+
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                            chr(bl_stepping))
         self.bsl_version = bl_version
 
+    def print_mcu_info(self):
+        """Print additional STC15 info"""
+
+        StcBaseProtocol.print_mcu_info(self)
+        print("Target wakeup frequency: %.3f KHz" %(self.wakeup_freq / 1000))
 
     def choose_range(self, packet, response, target_count):
         """Choose appropriate trim value mean for next round from challenge
