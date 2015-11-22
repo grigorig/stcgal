@@ -19,9 +19,7 @@ it is very portable and suitable for automation.
 Supported MCU models
 --------------------
 
-stcgal should fully support STC 89/90/10/11/12 series MCUs. STC
-15 series handling is unfinished, but should work with
-STC15F10x/STC15F20x MCU models.
+stcgal should fully support STC 89/90/10/11/12/15 series MCUs.
 
 So far, stcgal was tested with the following MCU models:
 
@@ -32,6 +30,7 @@ So far, stcgal was tested with the following MCU models:
 * STC15F104E (BSL version: 6.7Q)
 * STC15F204EA (BSL version: 6.7R)
 * STC15L104W (BSL version: 7.1Q)
+* IAP15F2K61S2 (BSL version: 7.1S)
 
 More compatibility testing is going to happen soon.
 
