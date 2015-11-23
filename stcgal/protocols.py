@@ -148,7 +148,7 @@ class Stc12AOption(BaseOption):
 
         """list of options and their handlers"""
         self.options = (
-            ("low_voltage_detect", self.get_low_voltage_detect, self.set_low_voltage_detect),
+            ("low_voltage_reset", self.get_low_voltage_detect, self.set_low_voltage_detect),
             ("clock_source", self.get_clock_source, self.set_clock_source),
             ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
             ("watchdog_stop_idle", self.get_watchdog_idle, self.set_watchdog_idle),
@@ -230,9 +230,9 @@ class Stc12Option(BaseOption):
         """list of options and their handlers"""
         self.options = (
             ("reset_pin_enabled", self.get_reset_pin_enabled, self.set_reset_pin_enabled),
-            ("low_voltage_detect", self.get_low_voltage_detect, self.set_low_voltage_detect),
+            ("low_voltage_reset", self.get_low_voltage_detect, self.set_low_voltage_detect),
             ("oscillator_stable_delay", self.get_osc_stable_delay, self.set_osc_stable_delay),
-            ("power_on_reset_delay", self.get_por_delay, self.set_por_delay),
+            ("por_reset_delay", self.get_por_delay, self.set_por_delay),
             ("clock_gain", self.get_clock_gain, self.set_clock_gain),
             ("clock_source", self.get_clock_source, self.set_clock_source),
             ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
@@ -461,10 +461,10 @@ class Stc15Option(BaseOption):
             ("eeprom_lvd_inhibit", self.get_eeprom_lvd, self.set_eeprom_lvd),
             ("eeprom_erase_enabled", self.get_ee_erase, self.set_ee_erase),
             ("bsl_pindetect_enabled", self.get_pindetect, self.set_pindetect),
-            ("power_on_reset_delay", self.get_por_delay, self.set_por_delay),
+            ("por_reset_delay", self.get_por_delay, self.set_por_delay),
             ("rstout_por_state", self.get_p33_state, self.set_p33_state),
-            ("uart_passthrough", self.get_uart_passthrough, self.set_uart_passthrough),
-            ("uart_pin_mode", self.get_uart_pin_mode, self.set_uart_pin_mode),
+            ("uart2_passthrough", self.get_uart_passthrough, self.set_uart_passthrough),
+            ("uart2_pin_mode", self.get_uart_pin_mode, self.set_uart_pin_mode),
         )
 
     def get_reset_pin_enabled(self):
