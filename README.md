@@ -38,6 +38,7 @@ Features
 --------
 
 * Display part info
+* Determine operating frequency
 * Program flash memory
 * Program IAP/EEPROM
 * Set device options
@@ -115,8 +116,9 @@ Target model:
   Magic: F449
   Code flash: 61.0 KB
   EEPROM flash: 0.0 KB
-Target frequency: 11.054 MHz
+Target frequency: 10.046 MHz
 Target BSL version: 7.1S
+Target wakeup frequency: 34.771 KHz
 Target options:
   reset_pin_enabled=False
   clock_source=internal
@@ -129,31 +131,30 @@ Target options:
   eeprom_lvd_inhibit=True
   eeprom_erase_enabled=False
   bsl_pindetect_enabled=False
-  power_on_reset_delay=long
+  por_reset_delay=long
   rstout_por_state=high
-  uart_passthrough=False
-  uart_pin_mode=normal
-Disconnected!
+  uart2_passthrough=False
+  uart2_pin_mode=normal
 ```
 
 ### Program the flash memory
 
-Please note that stcgal only handles raw binary encoded files at this
-point. You can easily convert common Intel HEX files with
-```objcopy -I ihex -O binary input.hex output.bin```.
+stcgal supports Intel HEX encoded files as well as binary files. Intel
+HEX is autodetected by file extension (.hex, .ihx or .ihex).
 
 Call stcgal just like before, but provide the path to the code binary:
 
 ```
-$ ./stcgal.py -P stc15 hello.bin
+$ ./stcgal.py -P stc15 hello.hex
 Waiting for MCU, please cycle power: done
 Target model:
   Name: IAP15F2K61S2
   Magic: F449
   Code flash: 61.0 KB
   EEPROM flash: 0.0 KB
-Target frequency: 11.054 MHz
+Target frequency: 10.046 MHz
 Target BSL version: 7.1S
+Target wakeup frequency: 34.771 KHz
 Target options:
   reset_pin_enabled=False
   clock_source=internal
@@ -166,11 +167,12 @@ Target options:
   eeprom_lvd_inhibit=True
   eeprom_erase_enabled=False
   bsl_pindetect_enabled=False
-  power_on_reset_delay=long
+  por_reset_delay=long
   rstout_por_state=high
-  uart_passthrough=False
-  uart_pin_mode=normal
-Trimming frequency: 11.104 MHz
+  uart2_passthrough=False
+  uart2_pin_mode=normal
+Loading flash: 80 bytes (Intel HEX)
+Trimming frequency: 10.046 MHz
 Switching to 19200 baud: done
 Erasing flash: done
 Writing 256 bytes: .... done
