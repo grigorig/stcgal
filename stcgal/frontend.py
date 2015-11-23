@@ -25,6 +25,7 @@ import argparse
 import stcgal
 from stcgal.utils import Utils, BaudType
 from stcgal.protocols import *
+from stcgal.ihex import IHex
 
 class StcGal:
     """STC ISP flash tool frontend"""
@@ -55,11 +56,31 @@ class StcGal:
             except ValueError as e:
                 raise NameError("invalid option '%s' (%s)" % (kv[0], e))
 
+    def load_file_auto(self, fileobj):
+        """Load file with Intel Hex autodetection."""
+
+        fname = fileobj.name.lower()
+        if (fname.endswith(".hex") or fname.endswith(".ihx") or
+                fname.endswith(".ihex")):
+            try:
+                hexfile = IHex.read(fileobj)
+                binary = hexfile.extract_data()
+                print("%d bytes (Intel HEX)" %len(binary))
+                return binary
+            except ValueError as e:
+                raise IOError("invalid Intel HEX file (%s)" %e)
+        else:
+            binary = fileobj.read()
+            print("%d bytes (Binary)" %len(binary))
+            return binary
+
     def program_mcu(self):
         code_size = self.protocol.model.code
         ee_size = self.protocol.model.eeprom
 
-        bindata = self.opts.code_binary.read()
+        print("Loading flash: ", end="")
+        sys.stdout.flush()
+        bindata = self.load_file_auto(self.opts.code_binary)
 
         # warn if it overflows
         if len(bindata) > code_size:
@@ -70,7 +91,9 @@ class StcGal:
 
         # add eeprom data if supplied
         if self.opts.eeprom_binary:
-            eedata = self.opts.eeprom_binary.read()
+            print("Loading EEPROM: ", end="")
+            sys.stdout.flush()
+            eedata = self.load_file_auto(self.opts.eeprom_binary)
             if len(eedata) > ee_size:
                 print("WARNING: eeprom_binary truncated!", file=sys.stderr)
                 eedata = eedata[0:ee_size]
@@ -116,6 +139,11 @@ class StcGal:
             else:
                 self.protocol.disconnect()
                 return 0
+        except IOError as e:
+            sys.stdout.flush();
+            print("I/O error: %s" % e, file=sys.stderr)
+            self.protocol.disconnect()
+            return 1
         except NameError as e:
             sys.stdout.flush();
             print("Option error: %s" % e, file=sys.stderr)
