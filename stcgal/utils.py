@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2013-2015 Grigori Goronzy <greg@chown.ath.cx>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,7 +19,41 @@
 # SOFTWARE.
 #
 
-import stcgal.frontend
+import serial
+import argparse
 
-if __name__ == "__main__":
-    stcgal.frontend.cli()
+class Utils:
+    @classmethod
+    def to_bool(self, val):
+        """make sensible boolean from string or other type value"""
+
+        if isinstance(val, bool): return val
+        if isinstance(val, int): return bool(val)
+        if len(val) == 0: return False
+        return True if val[0].lower() == "t" or val[0] == "1" else False
+
+    @classmethod
+    def to_int(self, val):
+        """make int from any value, nice error message if not possible"""
+
+        try: return int(val, 0)
+        except: raise ValueError("invalid integer")
+
+    @classmethod
+    def hexstr(self, bytestr, sep=""):
+        """make formatted hex string output from byte sequence"""
+
+        return sep.join(["%02X" % x for x in bytestr])
+
+
+class BaudType:
+    """Check baud rate for validity"""
+
+    def __call__(self, string):
+        baud = int(string)
+        if baud not in serial.Serial.BAUDRATES:
+            raise argparse.ArgumentTypeError("illegal baudrate")
+        return baud
+
+    def __repr__(self): return "baudrate"
+
