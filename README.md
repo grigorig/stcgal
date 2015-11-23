@@ -60,12 +60,11 @@ Usage
 See ```stcgal.py -h``` for usage information.
 
 ```
-$ ./stcgal.py -h
 usage: stcgal.py [-h] [-P {stc89,stc12a,stc12,stc15a,stc15}] [-p PORT]
                  [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
                  [code_binary] [eeprom_binary]
 
-stcgal - an STC MCU ISP flash tool
+stcgal 1.0 - an STC MCU ISP flash tool
 
 positional arguments:
   code_binary           code segment binary file to flash
@@ -78,7 +77,7 @@ optional arguments:
   -p PORT, --port PORT  serial port device
   -b BAUD, --baud BAUD  transfer baud rate (default: 19200)
   -l HANDSHAKE, --handshake HANDSHAKE
-                        handshake baud rate (default: 2400)
+                        handshake baud rate (default: 1200)
   -o OPTION, --option OPTION
                         set option (can be used multiple times)
   -t TRIM, --trim TRIM  RC oscillator frequency in kHz (STC15 series only)
@@ -135,6 +134,7 @@ Target options:
   rstout_por_state=high
   uart2_passthrough=False
   uart2_pin_mode=normal
+Disconnected!
 ```
 
 ### Program the flash memory
@@ -142,7 +142,7 @@ Target options:
 stcgal supports Intel HEX encoded files as well as binary files. Intel
 HEX is autodetected by file extension (.hex, .ihx or .ihex).
 
-Call stcgal just like before, but provide the path to the code binary:
+Call stcgal just like before, but provide the path to the code image:
 
 ```
 $ ./stcgal.py -P stc15 hello.hex
@@ -182,7 +182,7 @@ Disconnected!
 ```
 
 You can also program the EEPROM part of the memory, if applicable. Add
-the EEPROM binary to the commandline after the code binary.
+the EEPROM image path to the commandline after the flash image path.
 
 stcgal uses a conservative baud rate of 19200 bps by
 default. Programming can be sped up by choosing a faster baud rate
