@@ -55,10 +55,38 @@ Usage
 
 See ```stcgal.py -h``` for usage information.
 
+```
+$ ./stcgal.py -h
+usage: stcgal.py [-h] [-P {stc89,stc12a,stc12,stc15a,stc15}] [-p PORT]
+                 [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
+                 [code_binary] [eeprom_binary]
+
+stcgal - an STC MCU ISP flash tool
+
+positional arguments:
+  code_binary           code segment binary file to flash
+  eeprom_binary         eeprom segment binary file to flash
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -P {stc89,stc12a,stc12,stc15a,stc15}, --protocol {stc89,stc12a,stc12,stc15a,stc15}
+                        protocol version
+  -p PORT, --port PORT  serial port device
+  -b BAUD, --baud BAUD  transfer baud rate (default: 19200)
+  -l HANDSHAKE, --handshake HANDSHAKE
+                        handshake baud rate (default: 2400)
+  -o OPTION, --option OPTION
+                        set option (can be used multiple times)
+  -t TRIM, --trim TRIM  RC oscillator frequency in kHz (STC15 series only)
+  -D, --debug           enable debug output
+```
+
+Most importantly, ```-p``` sets the serial port to be used for programming.
+
 ### Protocols
 
 STC MCUs use a variety of related but incompatible protocols for the
-BSL. The protocol must be specified with the ```-p``` flag. Here's
+BSL. The protocol must be specified with the ```-P``` flag. Here's
 the general mapping between protocols and MCU series:
 
 * ```stc89``` STC 89/90 series
@@ -159,10 +187,19 @@ with the flag ```-b```.
 
 stcgal dumps a number of target options. These can be modified as
 well. Provide one (or more) ```-o``` flags followed by a key-value
-pair on the commandline to adjust these settings.
+pair on the commandline to adjust these settings. For instance, you can
+enable the external crystal as clock source:
 
-Detailed documentation for the settings is not available yet. Please
-refer to STC-ISP and the datasheets.
+```
+$ ./stcgal.py -P stc15 -o clock_source=external hello.bin
+```
+
+Detailed documentation for the settings is not available yet. However,
+most settings should be self-explaining. Otherwise, please refer to
+STC-ISP and the datasheets.
+
+Please note that device options can only be set when flash memory is
+programmed!
 
 ### Frequency trimming
 
