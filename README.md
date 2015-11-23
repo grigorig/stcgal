@@ -197,12 +197,34 @@ enable the external crystal as clock source:
 $ ./stcgal.py -P stc15 -o clock_source=external hello.bin
 ```
 
-Detailed documentation for the settings is not available yet. However,
-most settings should be self-explaining. Otherwise, please refer to
-STC-ISP and the datasheets.
-
 Please note that device options can only be set when flash memory is
 programmed!
+
+#### Option keys
+
+Not all parts support all options. The protocols or parts that support each option are listed in the description.
+
+Option key                    | Possible values   | Description
+------------------------------|-------------------|------------
+```cpu_6t_enabled```          | true/false        | 6T fast mode (STC89 only)
+```bsl_pindetect_enabled```   | true/false        | BSL only enabled when P3.2/P3.3 or P1.0/P1.1 (depends on model) are low
+```eeprom_erase_enabled```    | true/false        | Erase EEPROM with next programming cycle
+```clock_gain```              | low/high          | Clock gain for external crystal
+```ale_enabled```             | true/false        | ALE pin enabled if true, normal GPIO if false (STC89 only)
+```xram_enabled```            | true/false        | Use internal XRAM (STC89 only)
+```watchdog_por_enabled```    | true/false        | Watchdog after power-on reset (POR)
+```low_voltage_detect```      | true/false        | Low-voltage detection (brownout) (STC12A+)
+```clock_source```            | internal/external | Use internal (RC) or external (crystal) clock (STC12A+, not on all models)
+```watchdog_stop_idle```      | true/false        | Stop watchdog in IDLE mode (STC12A+)
+```watchdog_prescale```       | 2,4,8,...,256     | Watchdog timer prescaler. Must be a power of two. (STC12A+)
+```reset_pin_enabled```       | true/false        | RESET pin enabled if true, normal GPIO if false (STC12+)
+```oscillator_stable_delay``` | 4096,...,32768    | Crystal stabilization delay in clocks. Must be a power of two. (STC11F series only)
+```por_reset_delay```         | short/long        | Power-on reset (POR) delay (STC12+)
+```low_voltage_threshold```   | 0...7             | Low-voltage detection threshold. Model specific. (STC15A+)
+```eeprom_lvd_inhibit```      | true/false        | Ignore EEPROM writes in low-voltage situations (STC15A+)
+```rstout_por_state```        | low/high          | RSTOUT pin state after power-on reset (STC15)
+```uart2_passthrough```       | true/false        | Pass-through UART1 to UART2 pins (for single-wire UART mode) (STC15)
+```uart2_pin_mode```          | push-pull/normal  | Output mode of UART2 TX pin (STC15)
 
 ### Frequency trimming
 
