@@ -1585,6 +1585,7 @@ class Stc15AProtocol(Stc12Protocol):
 
         # finally, switch baudrate
         print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
         packet = bytes([0x8e])
         packet += struct.pack(">H", program_trim)
         packet += struct.pack(">B", 230400 // self.baud_transfer)
@@ -1712,6 +1713,7 @@ class Stc15Protocol(Stc15AProtocol):
 
         # calibration, round 1
         print("Trimming frequency: ", end="")
+        sys.stdout.flush()
         packet = bytes([0x00])
         packet += struct.pack(">B", 12)
         packet += bytes([0x00, 0xc0, 0x80, 0xc0, 0xff, 0xc0])
@@ -1754,6 +1756,7 @@ class Stc15Protocol(Stc15AProtocol):
 
         # switch to programming frequency
         print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
         packet = bytes([0x01])
         packet += bytes(prog_trim)
         # XXX: baud rate calculation is different between MCUs with and without
@@ -1775,6 +1778,7 @@ class Stc15Protocol(Stc15AProtocol):
         """Switch baudrate using external clock source"""
 
         print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
         packet = bytes([0x01])
         packet += bytes([self.freq_count_24, 0x40])
         packet += struct.pack(">H", int(65535 - self.mcu_clock_hz / self.baud_transfer / 4))
@@ -1822,6 +1826,7 @@ class Stc15Protocol(Stc15AProtocol):
         # XXX: how does partial erase work?
 
         print("Erasing flash: ", end="")
+        sys.stdout.flush()
         packet = bytes([0x03, 0x00])
         if self.bsl_version >= 0x72:
             packet += bytes([0x00, 0x5a, 0xa5])
