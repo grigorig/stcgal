@@ -152,4 +152,4 @@ def cli():
     
     # run programmer
     gal = StcGal(opts)
-    sys.exit(gal.run())
+    return gal.run()

@@ -21,7 +21,8 @@
 # SOFTWARE.
 #
 
+import sys
 import stcgal.frontend
 
 if __name__ == "__main__":
-    stcgal.frontend.cli()
+    sys.exit(stcgal.frontend.cli())
