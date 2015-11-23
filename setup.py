@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "stcgal",
-    version = "1.0",
+    version = stcgal.__version__,
     packages = find_packages(exclude=["doc"]),
     install_requires = ["pyserial"],
     entry_points = {
