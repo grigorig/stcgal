@@ -1,17 +1,18 @@
-stcgal - STC MCU flash tool
-===========================
+stcgal - STC MCU ISP flash tool
+===============================
 
 stcgal is a command line flash programming tool for STC MCU Ltd. [1]
 8051 compatible microcontrollers. The name was inspired by avrdude [2].
 
 STC microcontrollers have a UART based boot strap loader (BSL). It
 utilizes a packet-based protocol to flash the code memory and IAP
-memory. The BSL is also used to configure various (fuse-like) device
+memory over a serial link. This is referred to as in-system programming (ISP).
+The BSL is also used to configure various (fuse-like) device
 options. Unfortunately, this protocol is not publicly documented and
 STC only provide a (crude) Windows GUI application for programming.
 
-stcgal is a full-featured replacement for STC's Windows software;
-it is very portable and suitable for automation.
+stcgal is a full-featured Open Source replacement for STC's Windows software;
+it supports a wide range of MCUs, it is very portable and suitable for automation.
 
 [1] http://stcmcu.com/
 [2] http://www.nongnu.org/avrdude/
@@ -52,12 +53,13 @@ stcgal requires Python 3.2 (or later) and pySerial. You can run stcgal
 directly with the included ```stcgal.py``` script. The recommended
 method for permanent installation is to use Python's setuptools. Run
 ```./setup.py build``` to build and ```sudo ./setup.py install```
-to install stcgal.
+to install stcgal. A permanent installation provides the ```stcgal```
+command.
 
 Usage
 -----
 
-See ```stcgal.py -h``` for usage information.
+Call stcgal with ```-h``` for usage information.
 
 ```
 usage: stcgal.py [-h] [-P {stc89,stc12a,stc12,stc15a,stc15}] [-p PORT]
@@ -206,27 +208,27 @@ programmed!
 
 Not all parts support all options. The protocols or parts that support each option are listed in the description.
 
-Option key                    | Possible values   | Description
-------------------------------|-------------------|------------
-```cpu_6t_enabled```          | true/false        | 6T fast mode (STC89 only)
-```bsl_pindetect_enabled```   | true/false        | BSL only enabled when P3.2/P3.3 or P1.0/P1.1 (depends on model) are low
-```eeprom_erase_enabled```    | true/false        | Erase EEPROM with next programming cycle
-```clock_gain```              | low/high          | Clock gain for external crystal
-```ale_enabled```             | true/false        | ALE pin enabled if true, normal GPIO if false (STC89 only)
-```xram_enabled```            | true/false        | Use internal XRAM (STC89 only)
-```watchdog_por_enabled```    | true/false        | Watchdog after power-on reset (POR)
-```low_voltage_detect```      | true/false        | Low-voltage detection (brownout) (STC12A+)
-```clock_source```            | internal/external | Use internal (RC) or external (crystal) clock (STC12A+, not on all models)
-```watchdog_stop_idle```      | true/false        | Stop watchdog in IDLE mode (STC12A+)
-```watchdog_prescale```       | 2,4,8,...,256     | Watchdog timer prescaler. Must be a power of two. (STC12A+)
-```reset_pin_enabled```       | true/false        | RESET pin enabled if true, normal GPIO if false (STC12+)
-```oscillator_stable_delay``` | 4096,...,32768    | Crystal stabilization delay in clocks. Must be a power of two. (STC11F series only)
-```por_reset_delay```         | short/long        | Power-on reset (POR) delay (STC12+)
-```low_voltage_threshold```   | 0...7             | Low-voltage detection threshold. Model specific. (STC15A+)
-```eeprom_lvd_inhibit```      | true/false        | Ignore EEPROM writes in low-voltage situations (STC15A+)
-```rstout_por_state```        | low/high          | RSTOUT pin state after power-on reset (STC15)
-```uart2_passthrough```       | true/false        | Pass-through UART1 to UART2 pins (for single-wire UART mode) (STC15)
-```uart2_pin_mode```          | push-pull/normal  | Output mode of UART2 TX pin (STC15)
+Option key                    | Possible values   | Protocols/Models    | Description
+------------------------------|-------------------|---------------------|------------
+```cpu_6t_enabled```          | true/false        | STC89 only          | 6T fast mode
+```bsl_pindetect_enabled```   | true/false        | All                 | BSL only enabled when P3.2/P3.3 or P1.0/P1.1 (depends on model) are low
+```eeprom_erase_enabled```    | true/false        | All                 | Erase EEPROM with next programming cycle
+```clock_gain```              | low/high          | All with XTAL pins  | Clock gain for external crystal
+```ale_enabled```             | true/false        | STC89 only          | ALE pin enabled if true, normal GPIO if false
+```xram_enabled```            | true/false        | STC89 only          | Use internal XRAM (STC89 only)
+```watchdog_por_enabled```    | true/false        | All                 | Watchdog state after power-on reset (POR)
+```low_voltage_reset ```      | true/false        | STC12A+             | Low-voltage reset (brownout)
+```clock_source```            | internal/external | STC12A+ with XTAL   | Use internal (RC) or external (crystal) clock
+```watchdog_stop_idle```      | true/false        | STC12A+             | Stop watchdog in IDLE mode
+```watchdog_prescale```       | 2,4,8,...,256     | STC12A+             | Watchdog timer prescaler, must be a power of two.
+```reset_pin_enabled```       | true/false        | STC12+              | RESET pin enabled if true, normal GPIO if false
+```oscillator_stable_delay``` | 4096,...,32768    | STC11F series only  | Crystal stabilization delay in clocks. Must be a power of two.
+```por_reset_delay```         | short/long        | STC12+              | Power-on reset (POR) delay
+```low_voltage_threshold```   | 0...7             | STC15A+             | Low-voltage detection threshold. Model specific.
+```eeprom_lvd_inhibit```      | true/false        | STC15A+             | Ignore EEPROM writes in low-voltage situations
+```rstout_por_state```        | low/high          | STC15+              | RSTOUT pin state after power-on reset
+```uart2_passthrough```       | true/false        | STC15+              | Pass-through UART1 to UART2 pins (for single-wire UART mode)
+```uart2_pin_mode```          | push-pull/normal  | STC15+              | Output mode of UART2 TX pin
 
 ### Frequency trimming
 
