@@ -1868,6 +1868,17 @@ class Stc15Protocol(Stc15AProtocol):
             sys.stdout.flush()
         print(" done")
 
+        # BSL 7.2+ needs a write finish packet according to dumps
+        if self.bsl_version >= 0x72:
+            print("Finishing write: ", end="")
+            sys.stdout.flush()
+            packet = bytes([0x07, 0x00, 0x00, 0x5a, 0xa5])
+            self.write_packet(packet)
+            response = self.read_packet()
+            if response[0] != 0x07 or response[1] != 0x54:
+                raise StcProtocolException("incorrect magic in finish packet")
+            print(" done")
+
     def program_options(self):
         print("Setting options: ", end="")
         sys.stdout.flush()
