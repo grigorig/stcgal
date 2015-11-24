@@ -692,6 +692,20 @@ class StcBaseProtocol:
             raise StcProtocolException("incorrect magic in status packet")
         return status_packet
 
+    def get_iap_delay(self, clock_hz):
+        """IAP wait states for STC12A+ (according to datasheet(s))"""
+
+        iap_wait = 0x80
+        if clock_hz < 1E6: iap_wait = 0x87
+        elif clock_hz < 2E6: iap_wait = 0x86
+        elif clock_hz < 3E6: iap_wait = 0x85
+        elif clock_hz < 6E6: iap_wait = 0x84
+        elif clock_hz < 12E6: iap_wait = 0x83
+        elif clock_hz < 20E6: iap_wait = 0x82
+        elif clock_hz < 24E6: iap_wait = 0x81
+
+        return iap_wait
+
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
@@ -1033,15 +1047,8 @@ class Stc12AProtocol(Stc89Protocol):
             print("WARNING: baudrate error is %.2f%%. You may need to set a slower rate." %
                   baud_error, file=sys.stderr)
 
-        # IAP wait states (according to datasheet(s))
-        iap_wait = 0x80
-        if self.mcu_clock_hz < 1E6: iap_wait = 0x87
-        elif self.mcu_clock_hz < 2E6: iap_wait = 0x86
-        elif self.mcu_clock_hz < 3E6: iap_wait = 0x85
-        elif self.mcu_clock_hz < 6E6: iap_wait = 0x84
-        elif self.mcu_clock_hz < 12E6: iap_wait = 0x83
-        elif self.mcu_clock_hz < 20E6: iap_wait = 0x82
-        elif self.mcu_clock_hz < 24E6: iap_wait = 0x81
+        # IAP wait states
+        iap_wait = self.get_iap_delay(self.mcu_clock_hz)
 
         # MCU delay after switching baud rates
         delay = 0x80
@@ -1251,15 +1258,8 @@ class Stc12Protocol(StcBaseProtocol):
             print("WARNING: baudrate error is %.2f%%. You may need to set a slower rate." %
                   baud_error, file=sys.stderr)
 
-        # IAP wait states (according to datasheet(s))
-        iap_wait = 0x80
-        if self.mcu_clock_hz < 1E6: iap_wait = 0x87
-        elif self.mcu_clock_hz < 2E6: iap_wait = 0x86
-        elif self.mcu_clock_hz < 3E6: iap_wait = 0x85
-        elif self.mcu_clock_hz < 6E6: iap_wait = 0x84
-        elif self.mcu_clock_hz < 12E6: iap_wait = 0x83
-        elif self.mcu_clock_hz < 20E6: iap_wait = 0x82
-        elif self.mcu_clock_hz < 24E6: iap_wait = 0x81
+        # IAP wait states
+        iap_wait = self.get_iap_delay(self.mcu_clock_hz)
 
         # MCU delay after switching baud rates
         delay = 0x80
@@ -1586,10 +1586,11 @@ class Stc15AProtocol(Stc12Protocol):
         # finally, switch baudrate
         print("Switching to %d baud: " % self.baud_transfer, end="")
         sys.stdout.flush()
+        iap_wait = self.get_iap_delay(program_speed)
         packet = bytes([0x8e])
         packet += struct.pack(">H", program_trim)
         packet += struct.pack(">B", 230400 // self.baud_transfer)
-        packet += bytes([0xa1, 0x64, 0xb8, 0x00, 0x81, 0x20, 0xff, 0x00])
+        packet += bytes([0xa1, 0x64, 0xb8, 0x00, iap_wait, 0x20, 0xff, 0x00])
         self.write_packet(packet)
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
@@ -1775,7 +1776,8 @@ class Stc15Protocol(Stc15AProtocol):
         bauds = self.baud_transfer if (self.mcu_magic >> 8) == 0xf2 else self.baud_transfer * 4
         packet += struct.pack(">H", int(65535 - program_speed / bauds))
         packet += struct.pack(">H", int(65535 - (program_speed / bauds) * 1.5))
-        packet += bytes([0x83])
+        iap_wait = self.get_iap_delay(program_speed)
+        packet += bytes([iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x01:
@@ -1791,7 +1793,8 @@ class Stc15Protocol(Stc15AProtocol):
         packet = bytes([0x01])
         packet += bytes([self.freq_count_24, 0x40])
         packet += struct.pack(">H", int(65535 - self.mcu_clock_hz / self.baud_transfer / 4))
-        packet += bytes([0x00, 0x00, 0x83])
+        iap_wait = self.get_iap_delay(self.mcu_clock_hz)
+        packet += bytes([0x00, 0x00, iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x01:
