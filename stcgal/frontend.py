@@ -139,11 +139,6 @@ class StcGal:
             else:
                 self.protocol.disconnect()
                 return 0
-        except IOError as e:
-            sys.stdout.flush();
-            print("I/O error: %s" % e, file=sys.stderr)
-            self.protocol.disconnect()
-            return 1
         except NameError as e:
             sys.stdout.flush();
             print("Option error: %s" % e, file=sys.stderr)
@@ -161,6 +156,11 @@ class StcGal:
             return 2
         except serial.SerialException as e:
             print("Serial port error: %s" % e, file=sys.stderr)
+            return 1
+        except IOError as e:
+            sys.stdout.flush();
+            print("I/O error: %s" % e, file=sys.stderr)
+            self.protocol.disconnect()
             return 1
 
 
