@@ -1643,6 +1643,9 @@ class Stc15Protocol(Stc15AProtocol):
             self.mcu_clock_hz = self.baud_handshake * count
         else:
             self.mcu_clock_hz, = struct.unpack(">I", packet[8:12])
+            # all ones means no calibration
+            # new chips are shipped without any calibration
+            if self.mcu_clock_hz == 0xffffffff: self.mcu_clock_hz = 0
 
         # pre-calibrated trim adjust for 24 MHz, range 0x40
         self.freq_count_24 = packet[4]
@@ -1703,6 +1706,10 @@ class Stc15Protocol(Stc15AProtocol):
     def calibrate(self):
         """Calibrate selected user frequency and the high-speed program
         frequency and switch to selected baudrate."""
+
+        # handle uncalibrated chips
+        if self.mcu_clock_hz == 0 and self.trim_frequency <= 0:
+            raise StcProtocolException("uncalibrated, please provide a trim value")
 
         # determine target counters
         user_speed = self.trim_frequency
