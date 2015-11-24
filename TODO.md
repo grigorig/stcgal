@@ -5,4 +5,6 @@ TODO
 - private member naming, other style issues
 - sensible default serial port (e.g. on windows)
 - automatic protocol detection
-- Intel HEX support
+- verify stc12a/stc12 options (e.g. low_voltage_threshold)
+- also verify low_voltage_threshold on stc15
+- check if stc15 handles 64 byte blocks correctly
