@@ -74,7 +74,7 @@ class IHex(object):
       for addr, data in self.areas.items():
         if addr >= start:
           if len(result) < (addr - start):
-            result[len(result):len(result)+addr-start] = bytes(addr-start)
+            result[len(result):addr-start] = bytes(addr-start-len(result))
           result[addr-start:addr-start+len(data)] = data
       
       return bytes(result)
@@ -86,7 +86,7 @@ class IHex(object):
         if addr >= start and addr < end:
           data = data[:end-addr]
           if len(result) < (addr - start):
-            result[len(result):len(result)+addr-start] = bytes(addr-start)
+            result[len(result):addr-start] = bytes(addr-start-len(result))
           result[addr-start:addr-start+len(data)] = data
       
       return bytes(result)
