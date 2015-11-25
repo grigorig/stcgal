@@ -718,9 +718,9 @@ class StcBaseProtocol:
         self.ser = serial.Serial(port=self.port, baudrate=self.baud_handshake,
                                  parity=self.PARITY)
 
-        # conservative timeout values
-        self.ser.timeout = 10.0
-        self.ser.interCharTimeout = 1.0
+        # fast timeout values to deal with detection errors
+        self.ser.timeout = 0.5
+        self.ser.interCharTimeout = 0.5
 
         print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()
@@ -734,6 +734,10 @@ class StcBaseProtocol:
                 status_packet = self.get_status_packet()
             except (StcFramingException, serial.SerialTimeoutException): pass
         print("done")
+
+        # conservative timeout values
+        self.ser.timeout = 15.0
+        self.ser.interCharTimeout = 1.0
 
         self.initialize_status(status_packet)
         self.initialize_model()
