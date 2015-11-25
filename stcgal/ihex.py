@@ -69,24 +69,27 @@ class IHex(object):
       start = 0
     
     if end is None:
-      end = 0
-      result = bytes()
+      result = bytearray()
       
       for addr, data in self.areas.items():
         if addr >= start:
-          end = max(end, addr + len(data))
-          result = result[:start] + data[start-addr:end-addr] + result[end:]
+          if len(result) < (addr - start):
+            result[len(result):len(result)+addr-start] = bytes(addr-start)
+          result[addr-start:addr-start+len(data)] = data
       
-      return result
+      return bytes(result)
     
     else:
-      result = bytes()
+      result = bytearray()
       
       for addr, data in self.areas.items():
         if addr >= start and addr < end:
-          result = result[:start] + data[start-addr:end-addr] + result[end:]
+          data = data[:end-addr]
+          if len(result) < (addr - start):
+            result[len(result):len(result)+addr-start] = bytes(addr-start)
+          result[addr-start:addr-start+len(data)] = data
       
-      return result
+      return bytes(result)
   
   def set_start(self, start=None):
     self.start = start
