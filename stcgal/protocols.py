@@ -662,13 +662,17 @@ class StcBaseProtocol:
         print("Target frequency: %.3f MHz" % (self.mcu_clock_hz / 1E6))
         print("Target BSL version: %s" % self.mcu_bsl_version)
 
-    def pulse(self):
-        """Send a sequence of 0x7f bytes for synchronization"""
+    def pulse(self, character=b"\x7f", timeout=0):
+        """Send a sequence of bytes for synchronization with MCU"""
 
+        duration = 0
         while True:
-            self.ser.write(b"\x7f")
+            if timeout > 0 and duration > timeout:
+                raise serial.SerialTimeoutException("pulse timeout")
+            self.ser.write(character)
             self.ser.flush()
             time.sleep(0.015)
+            duration += 0.015
             if self.ser.inWaiting() > 0: break
 
     def initialize_model(self):
@@ -1735,8 +1739,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += bytes([0x00, 0x40, 0x80, 0x40, 0xff, 0x40])
         packet += bytes([0x00, 0x00, 0x80, 0x00, 0xc0, 0x00])
         self.write_packet(packet)
-        self.ser.write(bytes([0x92, 0x92, 0x92, 0x92]))
-        self.ser.flush()
+        self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
         if response[0] != 0x00:
             raise StcProtocolException("incorrect magic in handshake packet")
@@ -1755,8 +1758,7 @@ class Stc15Protocol(Stc15AProtocol):
         for i in range(prog_trim[0] - 3, prog_trim[0] + 3):
             packet += bytes([i & 0xff, prog_trim[1]])
         self.write_packet(packet)
-        self.ser.write(bytes([0x92, 0x92, 0x92, 0x92]))
-        self.ser.flush()
+        self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
         if response[0] != 0x00:
             raise StcProtocolException("incorrect magic in handshake packet")
