@@ -1532,7 +1532,7 @@ class Stc15AProtocol(Stc12Protocol):
         packet += bytes([0x98, 0x00, 0x02, 0x00])
         packet += bytes([0x98, 0x80, 0x02, 0x00])
         self.write_packet(packet)
-        self.pulse()
+        self.pulse(timeout=1.0)
         response = self.read_packet()
         if response[0] != 0x65:
             raise StcProtocolException("incorrect magic in handshake packet")
@@ -1574,7 +1574,7 @@ class Stc15AProtocol(Stc12Protocol):
             packet += struct.pack(">H", target_trim_start + i)
             packet += bytes([0x02, 0x00])
         self.write_packet(packet)
-        self.pulse()
+        self.pulse(timeout=1.0)
         response = self.read_packet()
         if response[0] != 0x65:
             raise StcProtocolException("incorrect magic in handshake packet")
