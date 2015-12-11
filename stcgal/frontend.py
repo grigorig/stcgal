@@ -80,27 +80,27 @@ class StcGal:
 
         print("Loading flash: ", end="")
         sys.stdout.flush()
-        bindata = self.load_file_auto(self.opts.code_binary)
+        bindata = self.load_file_auto(self.opts.code_image)
 
         # warn if it overflows
         if len(bindata) > code_size:
-            print("WARNING: code_binary overflows into eeprom segment!", file=sys.stderr)
+            print("WARNING: code_image overflows into eeprom segment!", file=sys.stderr)
         if len(bindata) > (code_size + ee_size):
-            print("WARNING: code_binary truncated!", file=sys.stderr)
+            print("WARNING: code_image truncated!", file=sys.stderr)
             bindata = bindata[0:code_size + ee_size]
 
         # add eeprom data if supplied
-        if self.opts.eeprom_binary:
+        if self.opts.eeprom_image:
             print("Loading EEPROM: ", end="")
             sys.stdout.flush()
-            eedata = self.load_file_auto(self.opts.eeprom_binary)
+            eedata = self.load_file_auto(self.opts.eeprom_image)
             if len(eedata) > ee_size:
-                print("WARNING: eeprom_binary truncated!", file=sys.stderr)
+                print("WARNING: eeprom_image truncated!", file=sys.stderr)
                 eedata = eedata[0:ee_size]
             if len(bindata) < code_size:
                 bindata += bytes(code_size - len(bindata))
             elif len(bindata) > code_size:
-                print("WARNING: eeprom_binary overlaps code_binary!", file=sys.stderr)
+                print("WARNING: eeprom_image overlaps code_image!", file=sys.stderr)
                 bindata = bindata[0:code_size]
             bindata += eedata
 
@@ -133,7 +133,7 @@ class StcGal:
             return 1
 
         try:
-            if self.opts.code_binary:
+            if self.opts.code_image:
                 self.program_mcu()
                 return 0
             else:
@@ -168,8 +168,8 @@ def cli():
     # check arguments
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description="stcgal %s - an STC MCU ISP flash tool\n(C) 2014-2015 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
-    parser.add_argument("code_binary", help="code segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
-    parser.add_argument("eeprom_binary", help="eeprom segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
+    parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
+    parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15"], default="stc12")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
