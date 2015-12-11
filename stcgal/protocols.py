@@ -1902,7 +1902,7 @@ class Stc15Protocol(Stc15AProtocol):
             response = self.read_packet()
             if response[0] != 0x07 or response[1] != 0x54:
                 raise StcProtocolException("incorrect magic in finish packet")
-            print(" done")
+            print("done")
 
     def program_options(self):
         print("Setting options: ", end="")
