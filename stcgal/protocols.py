@@ -446,13 +446,14 @@ class Stc15AOption(BaseOption):
 
 class Stc15Option(BaseOption):
     def __init__(self, msr):
-        assert len(msr) == 4
+        assert len(msr) == 5
         self.msr = bytearray(msr)
 
         self.options = (
             ("reset_pin_enabled", self.get_reset_pin_enabled, self.set_reset_pin_enabled),
             ("clock_source", self.get_clock_source, self.set_clock_source),
             ("clock_gain", self.get_clock_gain, self.set_clock_gain),
+            ("cpu_core_voltage", self.get_core_voltage, self.set_core_voltage),
             ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
             ("watchdog_stop_idle", self.get_watchdog_idle, self.set_watchdog_idle),
             ("watchdog_prescale", self.get_watchdog_prescale, self.set_watchdog_prescale),
@@ -602,6 +603,18 @@ class Stc15Option(BaseOption):
             raise ValueError("must be one of %s" % list(delays.keys()))
         self.msr[2] &= 0xdf
         self.msr[2] |= 0x20 if val else 0x00
+
+    def get_core_voltage(self):
+        if self.msr[4] == 0xea: return "low"
+        elif self.msr[4] == 0xf7: return "mid"
+        elif self.msr[4] == 0xfd: return "high"
+        else: return "unknown"
+
+    def set_core_voltage(self, val):
+        volt_vals = {"low": 0xea, "mid": 0xf7, "high": 0xfd}
+        if val not in volt_vals.keys():
+            raise ValueError("must be one of %s" % list(volt_vals.keys()))
+        self.msr[4] = volt_vals[val]
 
 
 class StcBaseProtocol:
@@ -1635,7 +1648,7 @@ class Stc15Protocol(Stc15AProtocol):
         """Initialize options"""
 
         # create option state
-        self.options = Stc15Option(status_packet[5:8] + status_packet[12:13])
+        self.options = Stc15Option(status_packet[5:8] + status_packet[12:13] + status_packet[37:38])
         self.options.print()
 
     def initialize_status(self, packet):
@@ -1906,7 +1919,9 @@ class Stc15Protocol(Stc15AProtocol):
                          (self.trim_frequency >> 0) & 0xff,
                          0xff])
         packet += bytes([msr[3]])
-        packet += bytes([0xff] * 27)
+        packet += bytes([0xff] * 23)
+        packet += bytes([msr[4]])
+        packet += bytes([0xff] * 3)
         packet += bytes([self.trim_value[0], self.trim_value[1] + 0x3f])
         packet += msr[0:3]
         self.write_packet(packet)

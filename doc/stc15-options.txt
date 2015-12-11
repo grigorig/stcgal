@@ -5,6 +5,7 @@ MCS3 is like early STC15 MCS1.
 MCS2 is like early STC15 MCS2.
 MCS4 is like early STC15 MCS0 but with additions.
 MCSX is like early STC15 MCS12.
+MCSY is new in STC15W4 series
 
 baseline
 B5 FF F7 BB 9F
@@ -80,3 +81,37 @@ external oscillator enabled (IAP15F2K61S2)
 external oscillator enabled + clock gain low (IAP15F2K61S2)
 9C 7F F7 BB 9C
 --> MCS 4 bit controls clock gain. high => high clock gain, low => low clock gain.
+
+
+cpu core supply level (MCSY)
+
+in status packet:
+
+2.68v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 7A C0 FD 27 ED 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 EA 92 FF FF FF 15 09 25 60 14 BD 16
+
+3.33v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 92 30 FD 25 EA 00 FC 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 F7 92 FF FF FF 15 09 25 60 15 49 16
+
+3.63v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 7A C0 FD 25 EF 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 FD 92 FF FF FF 15 09 25 60 14 D0 16
+
+3.73v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 92 30 FD 25 EA 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 FF 92 FF FF FF 15 09 25 60 14 55 16
+                                                                                                                              ^^
+                                                                                                                              MCSY
+
+voltage: ff -> 3.73v
+         fd -> 3.63v
+         f7 -> 3.33v
+         ea -> 2.68v
+
+in set options packet:
+
+46 B9 6A 00 4B 04 00 00 5A A5 FF FF FF 00 FF FF
+00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00 00 FF A8 FF EE FF E0 FF FD 03 FF FF FF FF FF
+FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+FF FD FF FF FF 75 BF F7 BC 9F 3A 80 16
+   ^^
+   MCSY

@@ -58,6 +58,11 @@ info packet
                               MCS2-4               MCSX
                            ^^
                            factory calibration adjust for 24 MHz (range 0x40)?
+
+STC15W4K56S4:
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 7A C0 FD 27 ED 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 EA 92 FF FF FF 15 09 25 60 14 BD 16
+                                                                                                                              ^^
+                                                                                                                              core voltage (MCSY)
          
 IAP15F2K61S2:                  
 external osc:
@@ -140,8 +145,9 @@ option packet
 
 FF FD FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF B5 FF F7 BB 9F 3A 48 16
    ^                                                                                   ^^^^^^^^^^^^^^ 
-   MCSX                                                                                MCS0-4
-   
+   MCSX                                                                    ^^          MCS0-4
+                                                                           MCSY
+                                                                           (STC15W4)
 
 MCS bytes
 ---------
@@ -154,7 +160,7 @@ RC calibration adjust
 
 0x3f + RC calibration range (0x00, 0x40, 0x80, 0xc0)
 
-### MCS2 - MCS4 and MCSX
+### MCS2 - MCS4, MCSX and MCSY
 
 See stc15-options.txt
 

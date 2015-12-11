@@ -231,6 +231,7 @@ Option key                    | Possible values   | Protocols/Models    | Descri
 ```rstout_por_state```        | low/high          | STC15+              | RSTOUT pin state after power-on reset
 ```uart2_passthrough```       | true/false        | STC15+              | Pass-through UART1 to UART2 pins (for single-wire UART mode)
 ```uart2_pin_mode```          | push-pull/normal  | STC15+              | Output mode of UART2 TX pin
+```cpu_core_voltage```        | low/mid/high      | STC15W+             | CPU core voltage (low: ~2.7V, mid: ~3.3V, high: ~3.6V)
 
 ### Frequency trimming
 
