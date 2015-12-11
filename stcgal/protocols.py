@@ -739,6 +739,9 @@ class StcBaseProtocol:
         self.ser.timeout = 0.5
         self.ser.interCharTimeout = 0.5
 
+        # avoid glitches if there is something in the input buffer
+        self.ser.flushInput()
+
         print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()
 
