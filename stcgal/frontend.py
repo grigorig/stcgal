@@ -166,7 +166,8 @@ class StcGal:
 
 def cli():
     # check arguments
-    parser = argparse.ArgumentParser(description="stcgal %s - an STC MCU ISP flash tool" %stcgal.__version__)
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description="stcgal %s - an STC MCU ISP flash tool\n(C) 2014-2015 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
     parser.add_argument("code_binary", help="code segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_binary", help="eeprom segment binary file to flash", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15"], default="stc12")
