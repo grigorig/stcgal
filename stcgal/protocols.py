@@ -732,8 +732,10 @@ class StcBaseProtocol:
         Set up serial port, send sync sequence and get part info.
         """
 
-        self.ser = serial.Serial(port=self.port, baudrate=self.baud_handshake,
-                                 parity=self.PARITY)
+        self.ser = serial.Serial(port=self.port, parity=self.PARITY)
+        # set baudrate separately to work around a bug with the CH340 driver
+        # on older Linux kernels
+        self.ser.baudrate = self.baud_handshake
 
         # fast timeout values to deal with detection errors
         self.ser.timeout = 0.5
