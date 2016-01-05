@@ -446,14 +446,13 @@ class Stc15AOption(BaseOption):
 
 class Stc15Option(BaseOption):
     def __init__(self, msr):
-        assert len(msr) == 5
+        assert len(msr) >= 4
         self.msr = bytearray(msr)
 
         self.options = (
             ("reset_pin_enabled", self.get_reset_pin_enabled, self.set_reset_pin_enabled),
             ("clock_source", self.get_clock_source, self.set_clock_source),
             ("clock_gain", self.get_clock_gain, self.set_clock_gain),
-            ("cpu_core_voltage", self.get_core_voltage, self.set_core_voltage),
             ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
             ("watchdog_stop_idle", self.get_watchdog_idle, self.set_watchdog_idle),
             ("watchdog_prescale", self.get_watchdog_prescale, self.set_watchdog_prescale),
@@ -467,6 +466,9 @@ class Stc15Option(BaseOption):
             ("uart2_passthrough", self.get_uart_passthrough, self.set_uart_passthrough),
             ("uart2_pin_mode", self.get_uart_pin_mode, self.set_uart_pin_mode),
         )
+
+        if len(msr) > 4:
+            self.options += ("cpu_core_voltage", self.get_core_voltage, self.set_core_voltage),
 
     def get_reset_pin_enabled(self):
         return not bool(self.msr[2] & 16)
@@ -1925,7 +1927,10 @@ class Stc15Protocol(Stc15AProtocol):
                          0xff])
         packet += bytes([msr[3]])
         packet += bytes([0xff] * 23)
-        packet += bytes([msr[4]])
+        if len(msr) > 4:
+            packet += bytes([msr[4]])
+        else:
+            packet += bytes([0xff])
         packet += bytes([0xff] * 3)
         packet += bytes([self.trim_value[0], self.trim_value[1] + 0x3f])
         packet += msr[0:3]
