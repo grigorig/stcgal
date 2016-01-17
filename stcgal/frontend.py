@@ -131,6 +131,10 @@ class StcGal:
             sys.stdout.flush();
             print("Serial port error: %s" % e, file=sys.stderr)
             return 1
+        except IOError as e:
+            sys.stdout.flush();
+            print("I/O error: %s" % e, file=sys.stderr)
+            return 1
 
         try:
             if self.opts.code_image:
