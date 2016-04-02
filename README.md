@@ -49,6 +49,7 @@ Features
 * Set device options
 * Read unique device ID (STC 10/11/12/15)
 * Trim RC oscillator frequency (STC 15)
+* Automatic power-cycling with DTR toggle
 
 Installation
 ------------
@@ -66,18 +67,21 @@ Usage
 Call stcgal with ```-h``` for usage information.
 
 ```
-usage: stcgal.py [-h] [-P {stc89,stc12a,stc12,stc15a,stc15}] [-p PORT]
+usage: stcgal.py [-h] [-a] [-P {stc89,stc12a,stc12,stc15a,stc15}] [-p PORT]
                  [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
-                 [code_binary] [eeprom_binary]
+                 [code_image] [eeprom_image]
 
 stcgal 1.0 - an STC MCU ISP flash tool
+(C) 2014-2015 Grigori Goronzy
+https://github.com/grigorig/stcgal
 
 positional arguments:
-  code_binary           code segment binary file to flash
-  eeprom_binary         eeprom segment binary file to flash
+  code_image            code segment file to flash (BIN/HEX)
+  eeprom_image          eeprom segment file to flash (BIN/HEX)
 
 optional arguments:
   -h, --help            show this help message and exit
+  -a, --autoreset       cycle power automatically by asserting DTR
   -P {stc89,stc12a,stc12,stc15a,stc15}, --protocol {stc89,stc12a,stc12,stc15a,stc15}
                         protocol version
   -p PORT, --port PORT  serial port device
@@ -243,6 +247,16 @@ is only supported by STC15 series. The trim values are stored with
 device options. Use the ```-t``` flag to request trimming to a certain
 value. Generally, frequencies between 4 and 35 MHz can be achieved. If
 trimming fails, stcgal will abort.
+
+### Automatic power-cycling
+
+STC's microcontrollers require a power-on reset to invoke the bootloader,
+which can be inconvenient. stcgal can use the DTR control signal of a
+serial interface to automate this. The DTR signal is asserted for
+approximately 500 ms when the autoreset feature is enabled with the
+```-a``` flag. This requires external circuitry to actually switch the
+power. In some cases, when the microcontroller draws only little power,
+it is possible to directly supply power from the DTR signal, however.
 
 License
 -------
