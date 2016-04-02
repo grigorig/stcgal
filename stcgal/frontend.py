@@ -117,7 +117,7 @@ class StcGal:
         self.protocol.disconnect()
 
     def run(self):
-        try: self.protocol.connect()
+        try: self.protocol.connect(autoreset=self.opts.autoreset)
         except KeyboardInterrupt:
             sys.stdout.flush();
             print("interrupted")
@@ -174,6 +174,7 @@ def cli():
                                      description="stcgal %s - an STC MCU ISP flash tool\n(C) 2014-2015 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
     parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
+    parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
     parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15"], default="stc12")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)

@@ -728,7 +728,7 @@ class StcBaseProtocol:
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
-    def connect(self):
+    def connect(self, autoreset=False):
         """Connect to MCU and initialize communication.
 
         Set up serial port, send sync sequence and get part info.
@@ -746,8 +746,18 @@ class StcBaseProtocol:
         # avoid glitches if there is something in the input buffer
         self.ser.flushInput()
 
-        print("Waiting for MCU, please cycle power: ", end="")
-        sys.stdout.flush()
+        if autoreset:
+            print("Cycling power: ", end="")
+            sys.stdout.flush()
+            self.ser.setDTR(True)
+            time.sleep(0.5)
+            self.ser.setDTR(False)
+            print("done")
+            print("Waiting for MCU: ", end="")
+            sys.stdout.flush()
+        else:
+            print("Waiting for MCU, please cycle power: ", end="")
+            sys.stdout.flush()
 
         # send sync, and wait for MCU response
         # ignore errors until we see a valid response
