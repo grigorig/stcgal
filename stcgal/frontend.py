@@ -178,7 +178,7 @@ def cli():
     parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15"], default="stc12")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
-    parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 1200)", type=BaudType(), default=1200)
+    parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
     parser.add_argument("-o", "--option", help="set option (can be used multiple times)", action="append")
     parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15 series only)", type=float, default=0.0)
     parser.add_argument("-D", "--debug", help="enable debug output", action="store_true")
