@@ -269,6 +269,13 @@ approximately 500 ms when the autoreset feature is enabled with the
 power. In some cases, when the microcontroller draws only little power,
 it is possible to directly supply power from the DTR signal, however.
 
+### Exit status
+
+The exit status is 0 if no error occured while executing stcgal. Any
+error, such as a protocol error or I/O error, results in an exit
+status of 1. If the the user aborted stcgal by pressing CTRL-C,
+that results in an exit status of 2.
+
 License
 -------
 
