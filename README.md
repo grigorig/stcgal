@@ -50,6 +50,7 @@ Features
 * Read unique device ID (STC 10/11/12/15)
 * Trim RC oscillator frequency (STC 15)
 * Automatic power-cycling with DTR toggle
+* Automatic protocol detection
 
 Installation
 ------------
@@ -67,8 +68,8 @@ Usage
 Call stcgal with ```-h``` for usage information.
 
 ```
-usage: stcgal.py [-h] [-a] [-P {stc89,stc12a,stc12,stc15a,stc15}] [-p PORT]
-                 [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
+usage: stcgal.py [-h] [-a] [-P {stc89,stc12a,stc12,stc15a,stc15,auto}]
+                 [-p PORT] [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
                  [code_image] [eeprom_image]
 
 stcgal 1.0 - an STC MCU ISP flash tool
@@ -82,12 +83,12 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -a, --autoreset       cycle power automatically by asserting DTR
-  -P {stc89,stc12a,stc12,stc15a,stc15}, --protocol {stc89,stc12a,stc12,stc15a,stc15}
+  -P {stc89,stc12a,stc12,stc15a,stc15,auto}, --protocol {stc89,stc12a,stc12,stc15a,stc15,auto}
                         protocol version
   -p PORT, --port PORT  serial port device
   -b BAUD, --baud BAUD  transfer baud rate (default: 19200)
   -l HANDSHAKE, --handshake HANDSHAKE
-                        handshake baud rate (default: 1200)
+                        handshake baud rate (default: 2400)
   -o OPTION, --option OPTION
                         set option (can be used multiple times)
   -t TRIM, --trim TRIM  RC oscillator frequency in kHz (STC15 series only)
@@ -99,14 +100,16 @@ Most importantly, ```-p``` sets the serial port to be used for programming.
 ### Protocols
 
 STC MCUs use a variety of related but incompatible protocols for the
-BSL. The protocol must be specified with the ```-P``` flag. Here's
-the general mapping between protocols and MCU series:
+BSL. The protocol can be specified with the ```-P``` flag. Optionally,
+experimental protocol autodetection can be used. The mapping between
+protocols and MCU series is as follows:
 
 * ```stc89``` STC 89/90 series
 * ```stc12a``` STC12Cx052AD and possibly others
-* ```stc12``` Most STC10/11/12 series
+* ```stc12``` Most STC10/11/12 series (default)
 * ```stc15a``` STC15x104E and STC15x204E(A) series
 * ```stc15``` Most STC15 series
+* ```auto``` Automatic detection
 
 The text files in the doc/ subdirectory provide an overview over
 the reverse engineered protocols used by the BSLs. For more details,
