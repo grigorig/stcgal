@@ -128,6 +128,7 @@ class StcGal:
                     raise StcProtocolException("cannot detect protocol")
                 base_protocol = self.protocol
                 self.opts.protocol = self.protocol.protocol_name
+                print("Protocol detected: %s" % self.opts.protocol)
                 # recreate self.protocol with proper protocol class
                 self.__init__(self.opts)
             else:
