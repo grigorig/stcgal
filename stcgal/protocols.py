@@ -21,7 +21,7 @@
 #
 
 import serial
-import sys, os, time, struct
+import sys, os, time, struct, re
 import argparse
 import collections
 from stcgal.models import MCUModelDatabase
@@ -634,6 +634,8 @@ class StcBaseProtocol:
     """magic byte for packets sent by host"""
     PACKET_HOST = bytes([0x6a])
 
+    PARITY = serial.PARITY_NONE
+
     def __init__(self, port, baud_handshake, baud_transfer):
         self.port = port
         self.baud_handshake = baud_handshake
@@ -646,18 +648,13 @@ class StcBaseProtocol:
         self.model = None
         self.uid = None
         self.debug = False
+        self.status_packet = None
+        self.protocol_name = None
 
     def dump_packet(self, data, receive=True):
         if self.debug:
             print("%s Packet data: %s" % (("<-" if receive else "->"),
                   Utils.hexstr(data, " ")), file=sys.stderr)
-
-    def modular_sum(self, data):
-        """modular 16-bit sum"""
-
-        s = 0
-        for b in data: s += b
-        return s & 0xffff
 
     def read_bytes_safe(self, num):
         """Read data from serial port with timeout handling
@@ -669,6 +666,61 @@ class StcBaseProtocol:
             raise serial.SerialTimeoutException("read timeout")
 
         return data
+
+    def extract_payload(self, packet):
+        """Extract the payload of a packet"""
+
+        if packet[-1] != self.PACKET_END[0]:
+            self.dump_packet(packet)
+            raise StcFramingException("incorrect frame end")
+
+        return packet[5:-1]
+
+    def read_packet(self):
+        """Read and check packet from MCU.
+
+        Reads a packet of data from the MCU and and do
+        validity and checksum checks on it.
+
+        Returns packet payload or None in case of an error.
+        """
+
+        # read and check frame start magic
+        packet = bytes()
+        packet += self.read_bytes_safe(1)
+        # Some (?) BSL versions don't send a frame start with the status
+        # packet. Let's be liberal and accept that always, just in case.
+        if packet[0] == self.PACKET_MCU[0]:
+            packet = self.PACKET_START + self.PACKET_MCU
+        else:
+            if packet[0] != self.PACKET_START[0]:
+                self.dump_packet(packet)
+                raise StcFramingException("incorrect frame start")
+            packet += self.read_bytes_safe(1)
+            if packet[1] != self.PACKET_START[1]:
+                self.dump_packet(packet)
+                raise StcFramingException("incorrect frame start")
+
+            # read direction
+            packet += self.read_bytes_safe(1)
+            if packet[2] != self.PACKET_MCU[0]:
+                self.dump_packet(packet)
+                raise StcFramingException("incorrect packet direction magic")
+
+        # read length
+        packet += self.read_bytes_safe(2)
+
+        # read packet data
+        packet_len, = struct.unpack(">H", packet[3:5])
+        packet += self.read_bytes_safe(packet_len - 3)
+
+        # verify checksum and extract payload
+        payload = self.extract_payload(packet);
+
+        self.dump_packet(packet, receive=True)
+
+        # payload only is returned
+        return payload
 
     def print_mcu_info(self):
         """Print MCU status information"""
@@ -693,6 +745,7 @@ class StcBaseProtocol:
     def initialize_model(self):
         """Initialize model-specific information"""
 
+        self.mcu_magic, = struct.unpack(">H", self.status_packet[20:22])
         try:
             self.model = MCUModelDatabase.find_model(self.mcu_magic)
         except NameError:
@@ -701,15 +754,47 @@ class StcBaseProtocol:
             print(msg, file=sys.stderr)
             self.model = MCUModelDatabase.MCUModel(name="UNKNOWN",
                 magic=self.mcu_magic, total=63488, code=63488, eeprom=0)
-        self.print_mcu_info()
+
+        # special case for duplicated mcu magic,
+        #   0xf294 (STC15F104W, STC15F104E)
+        #   0xf2d4 (STC15L104W, STC15L104E)
+        # duplicated mcu magic can be found using command,
+        #   grep -o 'magic=[^,]*' models.py | sort | uniq -d
+        if self.mcu_magic in (0xF294, 0xF2D4):
+            mcu_name = self.model.name[:-1]
+            mcu_name += "E" if self.status_packet[17] < 0x70 else "W"
+            self.model = self.model._replace(name = mcu_name)
+
+        protocol_database = [("stc89", "STC(89|90)(C|LE)\d"),
+                             ("stc12a", "STC12(C|LE)\d052"),
+                             ("stc12", "(STC|IAP)(10|11|12)\D"),
+                             ("stc15a", "(STC|IAP)15[FL][01]0\d(E|EA|)$"),
+                             ("stc15", "(STC|IAP|IRC)15\D")]
+
+        for protocol_name, pattern in protocol_database:
+            if re.match(pattern, self.model.name):
+                self.protocol_name = protocol_name
+                break
+        else:
+            self.protocol_name = None
 
     def get_status_packet(self):
         """Read and decode status packet"""
 
-        status_packet = self.read_packet()
-        if status_packet[0] != 0x50:
-            raise StcProtocolException("incorrect magic in status packet")
-        return status_packet
+        packet = self.read_packet()
+        if packet[0] == 0x80:
+            # need to re-ack
+            self.ser.parity = serial.PARITY_EVEN
+            packet = (self.PACKET_START
+                      + self.PACKET_HOST
+                      + bytes([0x00, 0x07, 0x80, 0x00, 0xF1])
+                      + self.PACKET_END)
+            self.dump_packet(packet, receive=False)
+            self.ser.write(packet)
+            self.ser.flush()
+            self.pulse()
+            packet = self.read_packet()
+        return packet
 
     def get_iap_delay(self, clock_hz):
         """IAP wait states for STC12A+ (according to datasheet(s))"""
@@ -761,11 +846,11 @@ class StcBaseProtocol:
 
         # send sync, and wait for MCU response
         # ignore errors until we see a valid response
-        status_packet = None
-        while not status_packet:
+        self.status_packet = None
+        while not self.status_packet:
             try:
                 self.pulse()
-                status_packet = self.get_status_packet()
+                self.status_packet = self.get_status_packet()
             except (StcFramingException, serial.SerialTimeoutException): pass
         print("done")
 
@@ -773,9 +858,25 @@ class StcBaseProtocol:
         self.ser.timeout = 15.0
         self.ser.interCharTimeout = 1.0
 
-        self.initialize_status(status_packet)
         self.initialize_model()
-        self.initialize_options(status_packet)
+
+    def initialize(self, base_protocol = None):
+        if base_protocol:
+            self.ser = base_protocol.ser
+            self.ser.parity = self.PARITY
+            packet = base_protocol.status_packet
+            packet = (self.PACKET_START
+                      + self.PACKET_MCU
+                      + struct.pack(">H", len(packet) + 4)
+                      + packet
+                      + self.PACKET_END)
+            self.status_packet = self.extract_payload(packet)
+            self.mcu_magic = base_protocol.mcu_magic
+            self.model = base_protocol.model
+
+        self.initialize_status(self.status_packet)
+        self.print_mcu_info()
+        self.initialize_options(self.status_packet)
 
     def disconnect(self):
         """Disconnect from MCU"""
@@ -801,60 +902,17 @@ class Stc89Protocol(StcBaseProtocol):
 
         self.cpu_6t = None
 
-    def read_packet(self):
-        """Read and check packet from MCU.
+    def extract_payload(self, packet):
+        """Verify the checksum of packet and return its payload"""
 
-        Reads a packet of data from the MCU and and do
-        validity and checksum checks on it.
-
-        Returns packet payload or None in case of an error.
-        """
-
-        # read and check frame start magic
-        packet = bytes()
-        packet += self.read_bytes_safe(1)
-        # Some (?) BSL versions don't send a frame start with the status
-        # packet. Let's be liberal and accept that always, just in case.
-        if packet[0] == self.PACKET_MCU[0]:
-            packet = self.PACKET_START + self.PACKET_MCU
-        else:
-            if packet[0] != self.PACKET_START[0]:
-                self.dump_packet(packet)
-                raise StcFramingException("incorrect frame start")
-            packet += self.read_bytes_safe(1)
-            if packet[1] != self.PACKET_START[1]:
-                self.dump_packet(packet)
-                raise StcFramingException("incorrect frame start")
-
-            # read direction
-            packet += self.read_bytes_safe(1)
-            if packet[2] != self.PACKET_MCU[0]:
-                self.dump_packet(packet)
-                raise StcFramingException("incorrect packet direction magic")
-
-        # read length
-        packet += self.read_bytes_safe(2)
-
-        # read packet data
-        packet_len, = struct.unpack(">H", packet[3:5])
-        packet += self.read_bytes_safe(packet_len - 3)
-
-        # verify end code
-        if packet[packet_len+1] != self.PACKET_END[0]:
-            self.dump_packet(packet)
-            raise StcFramingException("incorrect frame end")
-
-        # verify checksum
-        packet_csum = packet[packet_len]
-        calc_csum = sum(packet[2:packet_len]) & 0xff
+        packet_csum = packet[-2]
+        calc_csum = sum(packet[2:-2]) & 0xff
         if packet_csum != calc_csum:
             self.dump_packet(packet)
             raise StcFramingException("packet checksum mismatch")
 
-        self.dump_packet(packet, receive=True)
-
-        # payload only is returned
-        return packet[5:packet_len]
+        payload = StcBaseProtocol.extract_payload(self, packet)
+        return payload[:-1]
 
     def write_packet(self, data):
         """Send packet to MCU.
@@ -925,7 +983,6 @@ class Stc89Protocol(StcBaseProtocol):
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
 
-        self.mcu_magic, = struct.unpack(">H", packet[20:22])
         self.cpu_6t = not bool(packet[19] & 1)
 
         cpu_t = 6.0 if self.cpu_6t else 12.0
@@ -1055,8 +1112,6 @@ class Stc12AProtocol(Stc89Protocol):
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
 
-        self.mcu_magic, = struct.unpack(">H", packet[20:22])
-
         freq_counter = 0
         for i in range(8):
             freq_counter += struct.unpack(">H", packet[1+2*i:3+2*i])[0]
@@ -1103,7 +1158,7 @@ class Stc12AProtocol(Stc89Protocol):
     def handshake(self):
         """Do baudrate handshake
 
-        Initate and do the (rather complicated) baudrate handshake.
+        Initiate and do the (rather complicated) baudrate handshake.
         """
 
         # start baudrate handshake
@@ -1195,50 +1250,17 @@ class Stc12Protocol(StcBaseProtocol):
     def __init__(self, port, baud_handshake, baud_transfer):
         StcBaseProtocol.__init__(self, port, baud_handshake, baud_transfer)
 
-    def read_packet(self):
-        """Read and check packet from MCU.
-        
-        Reads a packet of data from the MCU and and do
-        validity and checksum checks on it.
+    def extract_payload(self, packet):
+        """Verify the checksum of packet and return its payload"""
 
-        Returns packet payload or None in case of an error.
-        """
-
-        # read and check frame start magic
-        packet = bytes()
-        packet += self.read_bytes_safe(1)
-        if packet[0] != self.PACKET_START[0]:
-            raise StcFramingException("incorrect frame start")
-        packet += self.read_bytes_safe(1)
-        if packet[1] != self.PACKET_START[1]:
-            raise StcFramingException("incorrect frame start")
-
-        # read direction and length
-        packet += self.read_bytes_safe(3)
-        if packet[2] != self.PACKET_MCU[0]:
-            self.dump_packet(packet)
-            raise StcFramingException("incorrect packet direction magic")
-
-        # read packet data
-        packet_len, = struct.unpack(">H", packet[3:5])
-        packet += self.read_bytes_safe(packet_len - 3)
-
-        # verify end code
-        if packet[packet_len+1] != self.PACKET_END[0]:
-            self.dump_packet(packet)
-            raise StcFramingException("incorrect frame end")
-
-        # verify checksum
-        packet_csum, = struct.unpack(">H", packet[packet_len-1:packet_len+1])
-        calc_csum = sum(packet[2:packet_len-1]) & 0xffff
+        packet_csum, = struct.unpack(">H", packet[-3:-1])
+        calc_csum = sum(packet[2:-3]) & 0xffff
         if packet_csum != calc_csum:
             self.dump_packet(packet)
             raise StcFramingException("packet checksum mismatch")
 
-        self.dump_packet(packet, receive=True)
-
-        # payload only is returned
-        return packet[5:packet_len-1]
+        payload = StcBaseProtocol.extract_payload(self, packet)
+        return payload[:-2]
 
     def write_packet(self, data):
         """Send packet to MCU.
@@ -1265,8 +1287,6 @@ class Stc12Protocol(StcBaseProtocol):
 
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
-
-        self.mcu_magic, = struct.unpack(">H", packet[20:22])
 
         freq_counter = 0
         for i in range(8):
@@ -1303,7 +1323,7 @@ class Stc12Protocol(StcBaseProtocol):
         delay = 0x80
 
         return brt, brt_csum, iap_wait, delay
-        
+
     def initialize_options(self, status_packet):
         """Initialize options"""
 
@@ -1471,8 +1491,6 @@ class Stc15AProtocol(Stc12Protocol):
 
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
-
-        self.mcu_magic, = struct.unpack(">H", packet[20:22])
 
         freq_counter = 0
         for i in range(4):
@@ -1653,6 +1671,7 @@ class Stc15AProtocol(Stc12Protocol):
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
 
+
 class Stc15Protocol(Stc15AProtocol):
     """Protocol handler for later STC 15 series"""
 
@@ -1670,8 +1689,6 @@ class Stc15Protocol(Stc15AProtocol):
 
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
-
-        self.mcu_magic, = struct.unpack(">H", packet[20:22])
 
         # check bit that control internal vs. external clock source
         # get frequency either stored from calibration or from
@@ -1951,5 +1968,3 @@ class Stc15Protocol(Stc15AProtocol):
         print("done")
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
-
-

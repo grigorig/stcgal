@@ -32,6 +32,7 @@ class StcGal:
 
     def __init__(self, opts):
         self.opts = opts
+
         if opts.protocol == "stc89":
             self.protocol = Stc89Protocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc12a":
@@ -40,10 +41,12 @@ class StcGal:
             self.protocol = Stc12Protocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc15a":
             self.protocol = Stc15AProtocol(opts.port, opts.handshake, opts.baud,
-                                          round(opts.trim * 1000))
-        else:
+                                           round(opts.trim * 1000))
+        elif opts.protocol == "stc15":
             self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud,
                                           round(opts.trim * 1000))
+        else:
+            self.protocol = StcBaseProtocol(opts.port, opts.handshake, opts.baud)
 
         self.protocol.debug = opts.debug
 
@@ -117,7 +120,20 @@ class StcGal:
         self.protocol.disconnect()
 
     def run(self):
-        try: self.protocol.connect(autoreset=self.opts.autoreset)
+        try:
+            self.protocol.connect(autoreset=self.opts.autoreset)
+
+            if self.opts.protocol == "auto":
+                if not self.protocol.protocol_name:
+                    raise StcProtocolException("cannot detect protocol")
+                base_protocol = self.protocol
+                self.opts.protocol = self.protocol.protocol_name
+                # recreate self.protocol with proper protocol class
+                self.__init__(self.opts)
+            else:
+                base_protocol = None
+
+            self.protocol.initialize(base_protocol)
         except KeyboardInterrupt:
             sys.stdout.flush();
             print("interrupted")
@@ -175,7 +191,7 @@ def cli():
     parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
-    parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15"], default="stc12")
+    parser.add_argument("-P", "--protocol", help="protocol version", choices=["stc89", "stc12a", "stc12", "stc15a", "stc15", "auto"], default="stc12")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
@@ -183,7 +199,7 @@ def cli():
     parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15 series only)", type=float, default=0.0)
     parser.add_argument("-D", "--debug", help="enable debug output", action="store_true")
     opts = parser.parse_args()
-    
+
     # run programmer
     gal = StcGal(opts)
     return gal.run()
