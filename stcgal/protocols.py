@@ -1876,6 +1876,8 @@ class Stc15Protocol(Stc15AProtocol):
             packet += bytes([0x00, 0x00, 0x5a, 0xa5])
         self.write_packet(packet)
         response = self.read_packet()
+        if response[0] == 0x0f:
+            raise StcProtocolException("MCU is locked")
         if response[0] != 0x05:
             raise StcProtocolException("incorrect magic in handshake packet")
 
