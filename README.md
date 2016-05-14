@@ -4,15 +4,16 @@ stcgal - STC MCU ISP flash tool
 stcgal is a command line flash programming tool for STC MCU Ltd. [1]
 8051 compatible microcontrollers. The name was inspired by avrdude [2].
 
-STC microcontrollers have a UART based boot strap loader (BSL). It
+STC microcontrollers have an UART/USB based boot strap loader (BSL). It
 utilizes a packet-based protocol to flash the code memory and IAP
-memory over a serial link. This is referred to as in-system programming (ISP).
-The BSL is also used to configure various (fuse-like) device
+memory over a serial link. This is referred to as in-system programming
+(ISP).  The BSL is also used to configure various (fuse-like) device
 options. Unfortunately, this protocol is not publicly documented and
 STC only provide a (crude) Windows GUI application for programming.
 
-stcgal is a full-featured Open Source replacement for STC's Windows software;
-it supports a wide range of MCUs, it is very portable and suitable for automation.
+stcgal is a full-featured Open Source replacement for STC's Windows
+software; it supports a wide range of MCUs, it is very portable and
+suitable for automation.
 
 [1] http://stcmcu.com/
 [2] http://www.nongnu.org/avrdude/
@@ -43,13 +44,14 @@ So far, stcgal was tested with the following MCU models:
 * IAP15F2K61S2 (BSL version: 7.1.4S)
 * STC15L2K16S2 (BSL version: 7.2.4S)
 * STC15W408AS (BSL version: 7.2.4T)
-* STC15W4K56S4 (BSL version: 7.3.4T)
+* STC15W4K56S4 (BSL version: 7.3.4T, UART and USB mode)
 
 Compatibility reports, both negative and positive, are welcome.
 
 Features
 --------
 
+* UART and USB BSL support
 * Display part info
 * Determine operating frequency
 * Program flash memory
@@ -58,12 +60,13 @@ Features
 * Read unique device ID (STC 10/11/12/15)
 * Trim RC oscillator frequency (STC 15)
 * Automatic power-cycling with DTR toggle
-* Automatic protocol detection
+* Automatic UART protocol detection
 
 Installation
 ------------
 
-stcgal requires Python 3.2 (or later) and pySerial. You can run stcgal
+stcgal requires Python 3.2 (or later) and pySerial. USB support is
+optional and requires pyusb 1.0.0b2 or later. You can run stcgal
 directly with the included ```stcgal.py``` script. The recommended
 method for permanent installation is to use Python's setuptools. Run
 ```./setup.py build``` to build and ```sudo ./setup.py install```
@@ -117,7 +120,8 @@ protocols and MCU series is as follows:
 * ```stc12``` Most STC10/11/12 series (default)
 * ```stc15a``` STC15x104E and STC15x204E(A) series
 * ```stc15``` Most STC15 series
-* ```auto``` Automatic detection
+* ```usb15``` USB support on STC15W4 series
+* ```auto``` Automatic detection of UART based protocols
 
 The text files in the doc/ subdirectory provide an overview over
 the reverse engineered protocols used by the BSLs. For more details,
@@ -275,6 +279,14 @@ The exit status is 0 if no error occured while executing stcgal. Any
 error, such as a protocol error or I/O error, results in an exit
 status of 1. If the the user aborted stcgal by pressing CTRL-C,
 that results in an exit status of 2.
+
+### USB support
+
+STC15W4 series have an USB-based BSL that can be optionally
+used. USB support in stcgal is experimental and might change in the
+future. USB mode is enabled by using the ```usb15``` protocol. The
+port (```-p```) flag as well as the baudrate options are ignored for
+the USB protocol. RC frequency trimming is not supported.
 
 License
 -------

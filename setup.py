@@ -29,6 +29,9 @@ setup(
     version = stcgal.__version__,
     packages = find_packages(exclude=["doc"]),
     install_requires = ["pyserial"],
+    extras_require = {
+        "usb": ["pyusb>=1.0.0"]
+    },
     entry_points = {
         "console_scripts": [
             "stcgal = stcgal.frontend:cli",
