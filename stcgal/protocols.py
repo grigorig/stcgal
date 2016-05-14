@@ -1012,6 +1012,7 @@ class Stc89Protocol(StcBaseProtocol):
 
         # check new baudrate
         print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
         brt, brt_csum, iap, delay = self.calculate_baud()
         print("checking ", end="")
         sys.stdout.flush()
