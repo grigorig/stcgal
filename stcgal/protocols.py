@@ -26,6 +26,8 @@ import argparse
 import collections
 from stcgal.models import MCUModelDatabase
 from stcgal.utils import Utils
+import usb, usb.core, usb.util
+import functools
 
 class StcFramingException(Exception):
     """Something wrong with packet framing or checksum"""
@@ -1977,3 +1979,162 @@ class Stc15Protocol(Stc15AProtocol):
         print("done")
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
+
+
+class StcUsb15Protocol(Stc15Protocol):
+    """USB should use large blocks"""
+    PROGRAM_BLOCKSIZE = 128
+
+    """VID of STC devices"""
+    USB_VID = 0x5354
+
+    """PID of STC devices"""
+    USB_PID = 0x4312
+
+    """Control transfer from host to device"""
+    USB_HOST2DEV = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_OUT
+
+    """Control transfer from device to host"""
+    USB_DEV2HOST = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_IN
+
+    def __init__(self):
+        # XXX: this is really ugly!
+        Stc15Protocol.__init__(self, "", 0, 0, 0)
+        self.dev = None
+
+    def dump_packet(self, data, request=0, value=0, index=0, receive=True):
+        if self.debug:
+            print("%s bRequest=%02X wValue=%04X wIndex=%04X data: %s" % (("<-" if receive else "->"),
+                  request, value, index, Utils.hexstr(data, " ")), file=sys.stderr)
+
+    def read_packet(self):
+        """Read a packet from the MCU"""
+
+        packet = self.dev.ctrl_transfer(self.USB_DEV2HOST, 0, 0, 0, 132).tobytes()
+        if len(packet) < 5 or packet[0] != 0x46 or packet[1] != 0xb9:
+            self.dump_packet(packet)
+            raise StcFramingException("incorrect frame start")
+
+        data_len = packet[2]
+        if (data_len) > len(packet) + 3:
+            self.dump_packet(packet)
+            raise StcFramingException("frame length mismatch")
+
+        data = packet[2:-1]
+        csum = functools.reduce(lambda x, y: x - y, data, 0) & 0xff
+        if csum != packet[-1]:
+            self.dump_packet(packet)
+            raise StcFramingException("frame checksum mismatch")
+
+        self.dump_packet(packet, receive=True)
+        return packet[3:3+data_len]
+
+    def write_packet(self, request, value=0, index=0, data=bytes([0])):
+        """Write USB control packet"""
+
+        # Control transfers are maximum of 8 bytes each, and every
+        # invidual partial transfer is checksummed individually.
+        i = 0
+        chunks = bytes()
+        while i < len(data):
+            c = data[i:i+7]
+            csum = functools.reduce(lambda x, y: x - y, c, 0) & 0xff
+            chunks += c + bytes([csum])
+            i += 7
+
+        self.dump_packet(chunks, request, value, index, receive=False)
+        self.dev.ctrl_transfer(self.USB_HOST2DEV, request, value, index, chunks);
+
+    def connect(self, autoreset=False):
+        """Connect to USB device and read info packet"""
+
+        print("Waiting for MCU, please cycle power: ", end="")
+        sys.stdout.flush()
+
+        self.status_packet = None
+        while not self.status_packet:
+            try:
+                self.dev = usb.core.find(idVendor=self.USB_VID, idProduct=self.USB_PID)
+                if self.dev:
+                    self.dev.set_configuration()
+                    self.status_packet = self.read_packet()
+                else:
+                    time.sleep(0.5)
+            except (StcFramingException, usb.core.USBError): pass
+
+        self.initialize_model()
+        print("done")
+
+    def handshake(self):
+        print("Initializing: ", end="")
+        sys.stdout.flush()
+
+        # handshake
+        self.write_packet(0x01, 0, 0, bytes([0x03]))
+        response = self.read_packet()
+        if response[0] != 0x01:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # enable/unlock MCU
+        self.write_packet(0x05, 0xa55a, 0)
+        response = self.read_packet()
+        if response[0] == 0x0f:
+            raise StcProtocolException("MCU is locked")
+        if response[0] != 0x05:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        print("done")
+
+    def erase_flash(self, code, eeprom):
+        print("Erasing flash: ", end="")
+        sys.stdout.flush()
+        self.write_packet(0x03, 0xa55a, 0)
+        # XXX: better way to detect MCU has finished
+        time.sleep(2)
+        packet = self.read_packet()
+        if packet[0] != 0x03:
+            raise StcProtocolException("incorrect magic in erase packet")
+        self.uid = packet[1:8]
+        print("done")
+
+    def program_flash(self, data):
+        """Program the MCU's flash memory."""
+
+        print("Writing %d bytes: " % len(data), end="")
+        sys.stdout.flush()
+        for i in range(0, len(data), self.PROGRAM_BLOCKSIZE):
+            packet = data[i:i+self.PROGRAM_BLOCKSIZE]
+            while len(packet) < self.PROGRAM_BLOCKSIZE: packet += b"\x00"
+            self.write_packet(0x22 if i == 0 else 0x02, 0xa55a, i, packet)
+            # XXX: better way to detect MCU has finished
+            time.sleep(0.1)
+            response = self.read_packet()
+            if response[0] != 0x02 or response[1] != 0x54:
+                raise StcProtocolException("incorrect magic in write packet")
+            print(".", end="")
+            sys.stdout.flush()
+        print(" done")
+
+    def program_options(self):
+        print("Setting options: ", end="")
+        sys.stdout.flush()
+
+        # always use 24 MHz pre-tuned value for now
+        self.trim_value = (self.freq_count_24, 0x40)
+        self.trim_frequency = int(24E6)
+
+        packet = self.build_options()
+        self.write_packet(0x04, 0xa55a, 0, packet)
+        # XXX: better way to detect MCU has finished
+        time.sleep(0.5)
+        response = self.read_packet()
+        if response[0] != 0x04 or response[1] != 0x54:
+            raise StcProtocolException("incorrect magic in option packet")
+        print("done")
+
+        print("Target UID: %s" % Utils.hexstr(self.uid))
+
+    def disconnect(self):
+        if self.dev:
+            self.write_packet(0xff)
+            print("Disconnected!")
