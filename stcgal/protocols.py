@@ -2069,9 +2069,11 @@ class StcUsb15Protocol(Stc15Protocol):
                 if self.dev:
                     self.dev.set_configuration()
                     self.status_packet = self.read_packet()
-                else:
-                    time.sleep(0.5)
-            except (StcFramingException, usb.core.USBError): pass
+                    if len(self.status_packet) < 38:
+                        self.status_packet = None
+                        raise StcFramingException
+                else: raise StcFramingException
+            except (StcFramingException, usb.core.USBError): time.sleep(0.5)
 
         self.initialize_model()
         print("done")
