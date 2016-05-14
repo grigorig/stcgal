@@ -1937,15 +1937,12 @@ class Stc15Protocol(Stc15AProtocol):
                 raise StcProtocolException("incorrect magic in finish packet")
             print("done")
 
-    def program_options(self):
-        print("Setting options: ", end="")
-        sys.stdout.flush()
-        msr = self.options.get_msr()
+    def build_options(self):
+        """Build a 64 byte packet of option data from the current
+        configuration."""
 
-        packet = bytes([0x04, 0x00, 0x00])
-        if self.bsl_version >= 0x72:
-            packet += bytes([0x5a, 0xa5])
-        packet += bytes([0xff] * 23)
+        msr = self.options.get_msr()
+        packet  = bytes([0xff] * 23)
         packet += bytes([(self.trim_frequency >> 24) & 0xff,
                          0xff,
                          (self.trim_frequency >> 16) & 0xff,
@@ -1963,6 +1960,16 @@ class Stc15Protocol(Stc15AProtocol):
         packet += bytes([0xff] * 3)
         packet += bytes([self.trim_value[0], self.trim_value[1] + 0x3f])
         packet += msr[0:3]
+        return packet
+
+    def program_options(self):
+        print("Setting options: ", end="")
+        sys.stdout.flush()
+
+        packet = bytes([0x04, 0x00, 0x00])
+        if self.bsl_version >= 0x72:
+            packet += bytes([0x5a, 0xa5])
+        packet += self.build_options()
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x04 or response[1] != 0x54:
