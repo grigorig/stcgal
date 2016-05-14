@@ -26,8 +26,14 @@ import argparse
 import collections
 from stcgal.models import MCUModelDatabase
 from stcgal.utils import Utils
-import usb, usb.core, usb.util
 import functools
+
+try:
+    import usb.core, usb.util
+    _usb_available = True
+except ImportError:
+    _usb_available = False
+
 
 class StcFramingException(Exception):
     """Something wrong with packet framing or checksum"""
@@ -2047,6 +2053,11 @@ class StcUsb15Protocol(Stc15Protocol):
 
     def connect(self, autoreset=False):
         """Connect to USB device and read info packet"""
+
+        # USB support is optional. Provide an error if pyusb is not available.
+        if _usb_available == False:
+            raise StcProtocolException("USB support not available. "
+                + "pyusb is not installed or not working correctly.")
 
         print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()
