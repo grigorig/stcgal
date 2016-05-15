@@ -111,7 +111,31 @@ in set options packet:
 46 B9 6A 00 4B 04 00 00 5A A5 FF FF FF 00 FF FF
 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 00 00 FF A8 FF EE FF E0 FF FD 03 FF FF FF FF FF
+^^
+MCSP
 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 FF FD FF FF FF 75 BF F7 BC 9F 3A 80 16
    ^^
    MCSY
+
+password setting
+
+the password is sent with packet type 0x07 and checked before erase with packet type 0x05. setting the password uses two fields.
+index 22 of the option block encodes the password length in bytes (MCSP, see above). bit 3 in MCS3 decides whether the password
+will be checked. if the bit is set, no password check occurs. if it is reset, a password check occurs.
+
+quick dump from USB-ISP packets:
+
+set: foobar
+0000   ff ff ff 00 ff ff 00 05 ff ff ff ff ff ff ff 07  ................
+0010   ff ff ff ff ff ff ff 07 ff 06 01 ff 6e ff 36 58  ............n.6X
+0020   ff 00 ff f5 03 ff ff 0c ff ff ff ff ff ff ff 07  ................
+0030   ff ff ff ff ff ff ff 07 ff ff ff ff ff ff ec 1a  ................
+0040   ff ff ff 99 7f f7 bc 38 9f 61                    .......8.a
+
+reset:
+0000   ff ff ff 00 ff ff 00 05 ff ff ff ff ff ff ff 07  ................
+0010   ff ff ff ff ff ff ff 07 ff 00 01 ff 6e ff 36 5e  ............n.6^
+0020   ff 00 ff fd 03 ff ff 04 ff ff ff ff ff ff ff 07  ................
+0030   ff ff ff ff ff ff ff 07 ff ff ff ff ff ff ec 1a  ................
+0040   ff ff ff 99 7f f7 bc 38 9f 61                    .......8.a
