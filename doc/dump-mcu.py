@@ -25,12 +25,12 @@ for i in range(MCU_TABLE_SIZE):
     inp.seek(mcu_name_offset)
     name_str = inp.read(16).split(b'\00')[0].decode("ascii")
 
-    # XXX: 1 KB are reserved one *some* MCUs for some reason
-    #if ee_size > 0 and not name_str.startswith("IAP"):
-    #    ee_size -= 1024
+    # TODO: With some MCUs, the amount of available EEPROM depends on the BSL version.
+    # Generally, newer BSLs free up a KB of additional EEPROM. Currently, always the
+    # maximum amount (with newer BSL) is reported.
 
-    # STC12C54xx always have 12 KB eeprom
-    if name_str.startswith("STC12C54"):
+    # STC12x54xx always have 12 KB eeprom
+    if name_str.startswith("STC12C54") or name_str.startswith("STC12LE54"):
         ee_size = 12 * 1024
 
     print("MCUModel(name='%s', magic=0x%02x%02x, total=%d, code=%d, eeprom=%d)," %
