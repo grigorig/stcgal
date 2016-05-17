@@ -109,9 +109,9 @@ class StcGal:
                 bindata = bindata[0:code_size]
             bindata += eedata
 
-        # pad to 256 byte boundary
-        if len(bindata) % 256:
-            bindata += bytes(256 - len(bindata) % 256)
+        # pad to 512 byte boundary
+        if len(bindata) % 512:
+            bindata += b'\xff' * (512 - len(bindata) % 512)
 
         if self.opts.option: self.emit_options(self.opts.option)
 
