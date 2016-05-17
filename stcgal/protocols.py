@@ -151,7 +151,7 @@ class Stc12AOption(BaseOption):
     """Manipulate STC12A series option bytes"""
 
     def __init__(self, msr):
-        assert len(msr) == 5
+        assert len(msr) == 4
         self.msr = bytearray(msr)
 
         """list of options and their handlers"""
@@ -166,12 +166,15 @@ class Stc12AOption(BaseOption):
         )
 
     def get_low_voltage_detect(self):
-        return not bool(self.msr[4] & 64)
+        lvd = bool(self.msr[3] & 64)
+        return "high" if not lvd else "low"
 
     def set_low_voltage_detect(self, val):
-        val = Utils.to_bool(val);
-        self.msr[4] &= 0xbf
-        self.msr[4] |= 0x40 if not val else 0x00
+        lvds = {"low": 1, "high": 0}
+        if val not in lvds.keys():
+            raise ValueError("must be one of %s" % list(sources.keys()))
+        self.msr[3] &= 0xbf
+        self.msr[3] |= lvds[val] << 6
 
     def get_clock_source(self):
         source = bool(self.msr[0] & 2)
@@ -1131,6 +1134,8 @@ class Stc12AProtocol(Stc89Protocol):
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                            chr(bl_stepping))
 
+        self.bsl_version = bl_version
+
     def calculate_baud(self):
         """Calculate MCU baudrate setting.
 
@@ -1161,7 +1166,7 @@ class Stc12AProtocol(Stc89Protocol):
         """Initialize options"""
 
         # create option state
-        self.options = Stc12AOption(status_packet[23:28])
+        self.options = Stc12AOption(status_packet[23:26] + status_packet[29:30])
         self.options.print()
 
     def handshake(self):
@@ -1233,14 +1238,28 @@ class Stc12AProtocol(Stc89Protocol):
         print("Setting options: ", end="")
         sys.stdout.flush()
         msr = self.options.get_msr()
-        packet = bytes([0x8d, msr[0], msr[1], msr[2], msr[3],
-                        msr[4]])
-
+        packet = bytes([0x8d, msr[0], msr[1], msr[2], 0xff, msr[3]])
         packet += struct.pack(">I", int(self.mcu_clock_hz))
+        packet += bytes([msr[3]])
+        packet += bytes([0xff, msr[0], msr[1], 0xff, 0xff, 0xff, 0xff, msr[2]])
+        packet += bytes([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+        packet += struct.pack(">I", int(self.mcu_clock_hz))
+        packet += bytes([0xff, 0xff, 0xff])
+
         self.write_packet(packet)
         response = self.read_packet()
         if response[0] != 0x80:
             raise StcProtocolException("incorrect magic in option packet")
+
+        # XXX: this is done by STC-ISP on newer parts. not sure why, but let's
+        # just replicate it, just to be sure.
+        if self.bsl_version >= 0x66:
+            packet = bytes([0x50])
+            self.write_packet(packet)
+            response = self.read_packet()
+            if response[0] != 0x10:
+                raise StcProtocolException("incorrect magic in option packet")
+
         print("done")
 
 

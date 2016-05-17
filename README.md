@@ -240,7 +240,9 @@ Option key                    | Possible values   | Protocols/Models    | Descri
 ```ale_enabled```             | true/false        | STC89 only          | ALE pin enabled if true, normal GPIO if false
 ```xram_enabled```            | true/false        | STC89 only          | Use internal XRAM (STC89 only)
 ```watchdog_por_enabled```    | true/false        | All                 | Watchdog state after power-on reset (POR)
-```low_voltage_reset ```      | true/false        | STC12A+             | Low-voltage reset (brownout)
+```low_voltage_reset```       | low/high          | STC12A/STC12        | Low-voltage reset level (low: ~3.3V, high: ~3.7V)
+```low_voltage_reset```       | true/false        | STC12               | Enable RESET2 pin low voltage detect
+```low_voltage_reset```       | true/false        | STC15A              | Enable low-voltage reset (brownout)
 ```clock_source```            | internal/external | STC12A+ with XTAL   | Use internal (RC) or external (crystal) clock
 ```watchdog_stop_idle```      | true/false        | STC12A+             | Stop watchdog in IDLE mode
 ```watchdog_prescale```       | 2,4,8,...,256     | STC12A+             | Watchdog timer prescaler, must be a power of two.

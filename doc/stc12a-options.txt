@@ -4,7 +4,7 @@ Placement of configuration values
 "~" means the bit is a negated boolean. Sometimes values overlap,
 depending on MCU model.
 
-In STC12A series, the first 4 MCS bytes have active
+In STC12A series, the first 7 MCS bytes have active
 values. Generally, unused bits should be set to 1.
 
 MCS0
@@ -47,14 +47,9 @@ MSB     7       6       5       4       3       2       1       0       LSB
          (or others, depends on MCU model) are held low on POR.
 
 
-MCS3
-----
 
-Unused.
-
-
-MCS4
-----
+MCS3 (at index 6!)
+------------------
 
 MSB     7       6       5       4       3       2       1       0       LSB
                 LVD
