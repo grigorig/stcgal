@@ -1356,7 +1356,7 @@ class Stc12Protocol(StcBaseProtocol):
         """Initialize options"""
 
         # create option state
-        self.options = Stc12Option(status_packet[23:27])
+        self.options = Stc12Option(status_packet[23:26] + status_packet[27:28])
         self.options.print()
 
     def handshake(self):
@@ -1465,8 +1465,10 @@ class Stc12Protocol(StcBaseProtocol):
         print("Setting options: ", end="")
         sys.stdout.flush()
         msr = self.options.get_msr()
+        # XXX: it's not 100% clear if the index of msr[3] is consistent
+        # between devices, so write it to both indices.
         packet = bytes([0x8d, msr[0], msr[1], msr[2], msr[3],
-                        0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                        0xff, 0xff, 0xff, 0xff, msr[3], 0xff,
                         0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
 
         packet += struct.pack(">I", int(self.mcu_clock_hz))
