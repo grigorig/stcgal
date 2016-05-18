@@ -1435,12 +1435,6 @@ class StcUsb15Protocol(Stc15Protocol):
     """PID of STC devices"""
     USB_PID = 0x4312
 
-    """Control transfer from host to device"""
-    USB_HOST2DEV = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_OUT
-
-    """Control transfer from device to host"""
-    USB_DEV2HOST = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_IN
-
     def __init__(self):
         # XXX: this is really ugly!
         Stc15Protocol.__init__(self, "", 0, 0, 0)
@@ -1454,7 +1448,8 @@ class StcUsb15Protocol(Stc15Protocol):
     def read_packet(self):
         """Read a packet from the MCU"""
 
-        packet = self.dev.ctrl_transfer(self.USB_DEV2HOST, 0, 0, 0, 132).tobytes()
+        dev2host = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_IN
+        packet = self.dev.ctrl_transfer(dev2host, 0, 0, 0, 132).tobytes()
         if len(packet) < 5 or packet[0] != 0x46 or packet[1] != 0xb9:
             self.dump_packet(packet)
             raise StcFramingException("incorrect frame start")
@@ -1487,7 +1482,8 @@ class StcUsb15Protocol(Stc15Protocol):
             i += 7
 
         self.dump_packet(chunks, request, value, index, receive=False)
-        self.dev.ctrl_transfer(self.USB_HOST2DEV, request, value, index, chunks);
+        host2dev = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_OUT
+        self.dev.ctrl_transfer(host2dev, request, value, index, chunks);
 
     def connect(self, autoreset=False):
         """Connect to USB device and read info packet"""
