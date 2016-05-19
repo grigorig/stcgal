@@ -194,6 +194,7 @@ class StcBaseProtocol:
 
         protocol_database = [("stc89", "STC(89|90)(C|LE)\d"),
                              ("stc12a", "STC12(C|LE)\d052"),
+                             ("stc12b", "STC12(C|LE)(52|56)"),
                              ("stc12", "(STC|IAP)(10|11|12)\D"),
                              ("stc15a", "(STC|IAP)15[FL][01]0\d(E|EA|)$"),
                              ("stc15", "(STC|IAP|IRC)15\D")]
@@ -529,7 +530,37 @@ class Stc89Protocol(StcBaseProtocol):
         print("done")
 
 
-class Stc12AProtocol(Stc89Protocol):
+class Stc12AOptionsMixIn:
+    def program_options(self):
+        print("Setting options: ", end="")
+        sys.stdout.flush()
+        msr = self.options.get_msr()
+        packet = bytes([0x8d, msr[0], msr[1], msr[2], 0xff, msr[3]])
+        packet += struct.pack(">I", int(self.mcu_clock_hz))
+        packet += bytes([msr[3]])
+        packet += bytes([0xff, msr[0], msr[1], 0xff, 0xff, 0xff, 0xff, msr[2]])
+        packet += bytes([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
+        packet += struct.pack(">I", int(self.mcu_clock_hz))
+        packet += bytes([0xff, 0xff, 0xff])
+
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x80:
+            raise StcProtocolException("incorrect magic in option packet")
+
+        # XXX: this is done by STC-ISP on newer parts. not sure why, but let's
+        # just replicate it, just to be sure.
+        if self.bsl_version >= 0x66:
+            packet = bytes([0x50])
+            self.write_packet(packet)
+            response = self.read_packet()
+            if response[0] != 0x10:
+                raise StcProtocolException("incorrect magic in option packet")
+
+        print("done")
+
+
+class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
 
     """countdown value for flash erase"""
     ERASE_COUNTDOWN = 0x0d
@@ -650,37 +681,34 @@ class Stc12AProtocol(Stc89Protocol):
             raise StcProtocolException("incorrect magic in erase packet")
         print("done")
 
+
+class Stc12OptionsMixIn:
     def program_options(self):
         print("Setting options: ", end="")
         sys.stdout.flush()
         msr = self.options.get_msr()
-        packet = bytes([0x8d, msr[0], msr[1], msr[2], 0xff, msr[3]])
-        packet += struct.pack(">I", int(self.mcu_clock_hz))
-        packet += bytes([msr[3]])
-        packet += bytes([0xff, msr[0], msr[1], 0xff, 0xff, 0xff, 0xff, msr[2]])
-        packet += bytes([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
-        packet += struct.pack(">I", int(self.mcu_clock_hz))
-        packet += bytes([0xff, 0xff, 0xff])
+        # XXX: it's not 100% clear if the index of msr[3] is consistent
+        # between devices, so write it to both indices.
+        packet = bytes([0x8d, msr[0], msr[1], msr[2], msr[3],
+                        0xff, 0xff, 0xff, 0xff, msr[3], 0xff,
+                        0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
 
+        packet += struct.pack(">I", int(self.mcu_clock_hz))
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x80:
+        if response[0] != 0x50:
             raise StcProtocolException("incorrect magic in option packet")
-
-        # XXX: this is done by STC-ISP on newer parts. not sure why, but let's
-        # just replicate it, just to be sure.
-        if self.bsl_version >= 0x66:
-            packet = bytes([0x50])
-            self.write_packet(packet)
-            response = self.read_packet()
-            if response[0] != 0x10:
-                raise StcProtocolException("incorrect magic in option packet")
-
         print("done")
 
+        # If UID wasn't sent with erase acknowledge, it should be in this packet
+        if not self.uid:
+            self.uid = response[18:25]
 
-class Stc12Protocol(StcBaseProtocol):
-    """Protocol handler for STC 10/11/12 series"""
+        print("Target UID: %s" % Utils.hexstr(self.uid))
+
+
+class Stc12BaseProtocol(StcBaseProtocol):
+    """Base class for STC 10/11/12 series protocol handlers"""
 
     """block size for programming flash"""
     PROGRAM_BLOCKSIZE = 128
@@ -741,6 +769,8 @@ class Stc12Protocol(StcBaseProtocol):
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                            chr(bl_stepping))
+
+        self.bsl_version = bl_version
 
     def calculate_baud(self):
         """Calculate MCU baudrate setting.
@@ -877,28 +907,19 @@ class Stc12Protocol(StcBaseProtocol):
             raise StcProtocolException("incorrect magic in finish packet")
         print("done")
 
-    def program_options(self):
-        print("Setting options: ", end="")
-        sys.stdout.flush()
-        msr = self.options.get_msr()
-        # XXX: it's not 100% clear if the index of msr[3] is consistent
-        # between devices, so write it to both indices.
-        packet = bytes([0x8d, msr[0], msr[1], msr[2], msr[3],
-                        0xff, 0xff, 0xff, 0xff, msr[3], 0xff,
-                        0xff, 0xff, 0xff, 0xff, 0xff, 0xff])
 
-        packet += struct.pack(">I", int(self.mcu_clock_hz))
-        self.write_packet(packet)
-        response = self.read_packet()
-        if response[0] != 0x50:
-            raise StcProtocolException("incorrect magic in option packet")
-        print("done")
+class Stc12Protocol(Stc12OptionsMixIn, Stc12BaseProtocol):
+    """STC 10/11/12 series protocol handler"""
 
-        # If UID wasn't sent with erase acknowledge, it should be in this packet
-        if not self.uid:
-            self.uid = response[18:25]
+    def __init__(self, port, handshake, baud):
+        Stc12BaseProtocol.__init__(self, port, handshake, baud)
 
-        print("Target UID: %s" % Utils.hexstr(self.uid))
+
+class Stc12BProtocol(Stc12AOptionsMixIn, Stc12BaseProtocol):
+    """STC 10/11/12 variant protocol handler"""
+
+    def __init__(self, port, handshake, baud):
+        Stc12BaseProtocol.__init__(self, port, handshake, baud)
 
 
 class Stc15AProtocol(Stc12Protocol):
