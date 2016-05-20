@@ -21,7 +21,7 @@
 #
 
 import serial
-import sys, os, time, struct, re
+import sys, os, time, struct, re, errno
 import argparse
 import collections
 from stcgal.models import MCUModelDatabase
@@ -1528,7 +1528,11 @@ class StcUsb15Protocol(Stc15Protocol):
                         self.status_packet = None
                         raise StcFramingException
                 else: raise StcFramingException
-            except (StcFramingException, usb.core.USBError): time.sleep(0.5)
+            except StcFramingException:
+                time.sleep(0.5)
+            except usb.core.USBError as err:
+                if err.errno == errno.EACCES:
+                    raise IOError(err.strerror)
 
         self.initialize_model()
         print("done")
