@@ -111,18 +111,18 @@ Most importantly, ```-p``` sets the serial port to be used for programming.
 ### Protocols
 
 STC MCUs use a variety of related but incompatible protocols for the
-BSL. The protocol can be specified with the ```-P``` flag. Optionally,
-experimental protocol autodetection can be used. The mapping between
-protocols and MCU series is as follows:
+BSL. The protocol can be specified with the ```-P``` flag. By default
+UART protocol autodetection is used. The mapping between protocols
+and MCU series is as follows:
 
-* ```stc89``` STC 89/90 series
-* ```stc12a``` STC12Cx052AD and possibly others
-* ```stc12b``` STC12x52xx series, STC12x56xx series and possibly others
-* ```stc12``` Most STC10/11/12 series (default)
+* ```stc89``` STC89/90 series
+* ```stc12a``` STC12x052 series and possibly others
+* ```stc12b``` STC12x52 series, STC12x56 series and possibly others
+* ```stc12``` Most STC10/11/12 series
 * ```stc15a``` STC15x104E and STC15x204E(A) series
 * ```stc15``` Most STC15 series
 * ```usb15``` USB support on STC15W4 series
-* ```auto``` Automatic detection of UART based protocols
+* ```auto``` Automatic detection of UART based protocols (default)
 
 The text files in the doc/ subdirectory provide an overview over
 the reverse engineered protocols used by the BSLs. For more details,
