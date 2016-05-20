@@ -194,6 +194,7 @@ class StcBaseProtocol:
 
         protocol_database = [("stc89", "STC(89|90)(C|LE)\d"),
                              ("stc12a", "STC12(C|LE)\d052"),
+                             ("stc12b", "STC12(C|LE)(52|56)"),
                              ("stc12", "(STC|IAP)(10|11|12)\D"),
                              ("stc15a", "(STC|IAP)15[FL][01]0\d(E|EA|)$"),
                              ("stc15", "(STC|IAP|IRC)15\D")]
@@ -913,6 +914,12 @@ class Stc12Protocol(Stc12OptionsMixIn, Stc12BaseProtocol):
     def __init__(self, port, handshake, baud):
         Stc12BaseProtocol.__init__(self, port, handshake, baud)
 
+
+class Stc12BProtocol(Stc12AOptionsMixIn, Stc12BaseProtocol):
+    """STC 10/11/12 variant protocol handler"""
+
+    def __init__(self, port, handshake, baud):
+        Stc12BaseProtocol.__init__(self, port, handshake, baud)
 
 
 class Stc15AProtocol(Stc12Protocol):
