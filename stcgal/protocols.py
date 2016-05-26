@@ -891,8 +891,6 @@ class Stc12BaseProtocol(StcBaseProtocol):
             response = self.read_packet()
             if response[0] != 0x00:
                 raise StcProtocolException("incorrect magic in write packet")
-            elif response[1] != csum:
-                raise StcProtocolException("verification checksum mismatch")
             print(".", end="")
             sys.stdout.flush()
         print(" done")
