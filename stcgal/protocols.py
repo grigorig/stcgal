@@ -1293,7 +1293,7 @@ class Stc15Protocol(Stc15AProtocol):
         # This is a bit of a hack, but it works.
         bauds = self.baud_transfer if (self.mcu_magic >> 8) == 0xf2 else self.baud_transfer * 4
         packet += struct.pack(">H", int(65535 - program_speed / bauds))
-        packet += struct.pack(">H", int(65535 - (program_speed / bauds) * 1.5))
+        packet += bytes(user_trim)
         iap_wait = self.get_iap_delay(program_speed)
         packet += bytes([iap_wait])
         self.write_packet(packet)
