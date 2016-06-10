@@ -1,0 +1,46 @@
+STC15 series USB ISP protocol
+=============================
+
+General principle
+-----------------
+
+- host does OUT and IN control transfers for write and read
+- IN transfer with wLength = 132, wValue = 0, wIndex = 0, bRequest = 0 are used for all reads
+- OUT transfers with with specific bRequest, wValue, wIndex are used for writes
+
+
+Packet coding
+-------------
+
+- packets from MCU
+  always start with 0x46 0xb9, similar to serial protocols
+  third byte is packet length, followed by data bytes
+  checksum at the end: 8 bit modular sum
+
+- packets from host
+  no header bytes
+  bRequest sets packet type
+  wValue, wIndex interpretation according to packet type
+  8 bit modular checksum for every 7 bytes, interleaved
+  
+- packet types derived from the serial protocol
+
+Specific packet information
+---------------------------
+
+- flash data
+  wIndex specifies write address
+  wValue is 0xa55a
+  bRequest is 0x22 for first packet, 0x02 for the following ones
+  unusually encoded: a total of 128 bytes per packet,
+  with every 7 byte checksummed in some way,
+  for a total of 18x7 byte segments and a final 2 byte segment
+  checksum: 8 bit modular sum
+
+- option packet
+  generally same as with serial protocol, some header stuff omitted
+  wIndex is 0
+  wValue is 0xa55a
+  bRequest is 4
+  seems to use the same checksumming scheme as flash writes
+
