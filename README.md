@@ -25,14 +25,14 @@ stcgal should fully support STC 89/90/10/11/12/15 series MCUs.
 
 So far, stcgal was tested with the following MCU models:
 
-* STC89C52RC (BSL version: 4.3C)
+* STC89C52RC (BSL version: 4.3C/6.6C)
 * STC90C52RC (BSL version: 4.3C)
 * STC89C54RD+ (BSL version: 4.3C)
 * STC12C2052 (BSL version: 5.8D)
 * STC12C2052AD (BSL version: 5.8D)
 * STC12C5608AD (BSL version: 6.0G)
 * STC12C5A16S2 (BSL version: 6.2I)
-* STC12C5A60S2 (BSL version: 6.2I)
+* STC12C5A60S2 (BSL version: 6.2I/7.1I)
 * STC11F02E (BSL version: 6.5K)
 * STC10F04XE (BSL version: 6.5J)
 * STC11F08XE (BSL version: 6.5M)
