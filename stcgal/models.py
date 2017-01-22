@@ -973,6 +973,7 @@ class MCUModelDatabase:
         MCUModel(name='STC90LE513AD', magic=0xf18d, total=65536, code=53248, eeprom=10240),
         MCUModel(name='STC90LE514AD', magic=0xf18e, total=65536, code=57344, eeprom=6144),
         MCUModel(name='STC90LE516AD', magic=0xf190, total=65536, code=63488, eeprom=0),
+
     )
 
     @classmethod
