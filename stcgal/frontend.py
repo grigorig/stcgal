@@ -192,7 +192,7 @@ class StcGal:
 def cli():
     # check arguments
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-                                     description="stcgal %s - an STC MCU ISP flash tool\n(C) 2014-2015 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
+                                     description="stcgal %s - an STC MCU ISP flash tool\n(C) 2014-2017 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
     parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
