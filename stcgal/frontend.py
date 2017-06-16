@@ -20,7 +20,7 @@
 # SOFTWARE.
 #
 
-import sys, os, time, struct
+import sys
 import argparse
 import stcgal
 from stcgal.utils import Utils, BaudType

@@ -142,7 +142,7 @@ class StcBaseProtocol:
         packet += self.read_bytes_safe(packet_len - 3)
 
         # verify checksum and extract payload
-        payload = self.extract_payload(packet);
+        payload = self.extract_payload(packet)
 
         self.dump_packet(packet, receive=True)
 
@@ -192,12 +192,12 @@ class StcBaseProtocol:
             mcu_name += "E" if self.status_packet[17] < 0x70 else "W"
             self.model = self.model._replace(name = mcu_name)
 
-        protocol_database = [("stc89", "STC(89|90)(C|LE)\d"),
-                             ("stc12a", "STC12(C|LE)\d052"),
-                             ("stc12b", "STC12(C|LE)(52|56)"),
-                             ("stc12", "(STC|IAP)(10|11|12)\D"),
-                             ("stc15a", "(STC|IAP)15[FL][01]0\d(E|EA|)$"),
-                             ("stc15", "(STC|IAP|IRC)15\D")]
+        protocol_database = [("stc89", r"STC(89|90)(C|LE)\d"),
+                             ("stc12a", r"STC12(C|LE)\d052"),
+                             ("stc12b", r"STC12(C|LE)(52|56)"),
+                             ("stc12", r"(STC|IAP)(10|11|12)\D"),
+                             ("stc15a", r"(STC|IAP)15[FL][01]0\d(E|EA|)$"),
+                             ("stc15", r"(STC|IAP|IRC)15\D")]
 
         for protocol_name, pattern in protocol_database:
             if re.match(pattern, self.model.name):
@@ -886,7 +886,6 @@ class Stc12BaseProtocol(StcBaseProtocol):
             packet += struct.pack(">H", self.PROGRAM_BLOCKSIZE)
             packet += data[i:i+self.PROGRAM_BLOCKSIZE]
             while len(packet) < self.PROGRAM_BLOCKSIZE + 7: packet += b"\x00"
-            csum = sum(packet[7:]) & 0xff
             self.write_packet(packet)
             response = self.read_packet()
             if response[0] != 0x00:
@@ -965,7 +964,7 @@ class Stc15AProtocol(Stc12Protocol):
 
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
-                                           chr(bl_stepping))
+                                            chr(bl_stepping))
 
         self.trim_data = packet[51:58]
         self.freq_counter = freq_counter
@@ -1177,8 +1176,7 @@ class Stc15Protocol(Stc15AProtocol):
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         bl_minor = packet[22] & 0x0f
         self.mcu_bsl_version = "%d.%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
-                                           bl_minor,
-                                           chr(bl_stepping))
+                                               bl_minor, chr(bl_stepping))
         self.bsl_version = bl_version
 
     def print_mcu_info(self):
@@ -1502,7 +1500,7 @@ class StcUsb15Protocol(Stc15Protocol):
 
         self.dump_packet(chunks, request, value, index, receive=False)
         host2dev = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_OUT
-        self.dev.ctrl_transfer(host2dev, request, value, index, chunks);
+        self.dev.ctrl_transfer(host2dev, request, value, index, chunks)
 
     def connect(self, autoreset=False):
         """Connect to USB device and read info packet"""

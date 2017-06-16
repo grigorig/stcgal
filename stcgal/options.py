@@ -69,7 +69,7 @@ class Stc89Option(BaseOption):
         return not bool(self.msr & 1)
 
     def set_t6(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr &= 0xfe
         self.msr |= 0x01 if not bool(val) else 0x00
 
@@ -77,7 +77,7 @@ class Stc89Option(BaseOption):
         return not bool(self.msr & 4)
 
     def set_pindetect(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr &= 0xfb
         self.msr |= 0x04 if not bool(val) else 0x00
 
@@ -85,7 +85,7 @@ class Stc89Option(BaseOption):
         return not bool(self.msr & 8)
 
     def set_ee_erase(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr &= 0xf7
         self.msr |= 0x08 if not bool(val) else 0x00
 
@@ -104,7 +104,7 @@ class Stc89Option(BaseOption):
         return bool(self.msr & 32)
 
     def set_ale(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr &= 0xdf
         self.msr |= 0x20 if bool(val) else 0x00
 
@@ -112,7 +112,7 @@ class Stc89Option(BaseOption):
         return bool(self.msr & 64)
 
     def set_xram(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr &= 0xbf
         self.msr |= 0x40 if bool(val) else 0x00
 
@@ -120,7 +120,7 @@ class Stc89Option(BaseOption):
         return not bool(self.msr & 128)
 
     def set_watchdog(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr &= 0x7f
         self.msr |= 0x80 if not bool(val) else 0x00
 
@@ -169,7 +169,7 @@ class Stc12AOption(BaseOption):
         return not bool(self.msr[1] & 32)
 
     def set_watchdog(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[1] &= 0xdf
         self.msr[1] |= 0x20 if not val else 0x00
 
@@ -177,7 +177,7 @@ class Stc12AOption(BaseOption):
         return not bool(self.msr[1] & 8)
 
     def set_watchdog_idle(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[1] &= 0xf7
         self.msr[1] |= 0x08 if not val else 0x00
 
@@ -196,7 +196,7 @@ class Stc12AOption(BaseOption):
         return not bool(self.msr[2] & 2)
 
     def set_ee_erase(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xfd
         self.msr[2] |= 0x02 if not val else 0x00
 
@@ -204,7 +204,7 @@ class Stc12AOption(BaseOption):
         return not bool(self.msr[2] & 1)
 
     def set_pindetect(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xfe
         self.msr[2] |= 0x01 if not val else 0x00
 
@@ -235,7 +235,7 @@ class Stc12Option(BaseOption):
         return bool(self.msr[0] & 1)
 
     def set_reset_pin_enabled(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[0] &= 0xfe
         self.msr[0] |= 0x01 if bool(val) else 0x00
 
@@ -243,7 +243,7 @@ class Stc12Option(BaseOption):
         return not bool(self.msr[0] & 64)
 
     def set_low_voltage_detect(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[0] &= 0xbf
         self.msr[0] |= 0x40 if not val else 0x00
 
@@ -295,7 +295,7 @@ class Stc12Option(BaseOption):
         return not bool(self.msr[2] & 32)
 
     def set_watchdog(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xdf
         self.msr[2] |= 0x20 if not val else 0x00
 
@@ -303,7 +303,7 @@ class Stc12Option(BaseOption):
         return not bool(self.msr[2] & 8)
 
     def set_watchdog_idle(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xf7
         self.msr[2] |= 0x08 if not val else 0x00
 
@@ -322,7 +322,7 @@ class Stc12Option(BaseOption):
         return not bool(self.msr[3] & 2)
 
     def set_ee_erase(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[3] &= 0xfd
         self.msr[3] |= 0x02 if not val else 0x00
 
@@ -330,7 +330,7 @@ class Stc12Option(BaseOption):
         return not bool(self.msr[3] & 1)
 
     def set_pindetect(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[3] &= 0xfe
         self.msr[3] |= 0x01 if not val else 0x00
 
@@ -359,7 +359,7 @@ class Stc15AOption(BaseOption):
         return bool(self.msr[0] & 16)
 
     def set_reset_pin_enabled(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[0] &= 0xef
         self.msr[0] |= 0x10 if bool(val) else 0x00
 
@@ -367,7 +367,7 @@ class Stc15AOption(BaseOption):
         return not bool(self.msr[2] & 32)
 
     def set_watchdog(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xdf
         self.msr[2] |= 0x20 if not val else 0x00
 
@@ -375,7 +375,7 @@ class Stc15AOption(BaseOption):
         return not bool(self.msr[2] & 8)
 
     def set_watchdog_idle(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xf7
         self.msr[2] |= 0x08 if not val else 0x00
 
@@ -394,7 +394,7 @@ class Stc15AOption(BaseOption):
         return bool(self.msr[1] & 64)
 
     def set_lvrs(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[1] &= 0xbf
         self.msr[1] |= 0x40 if val else 0x00
 
@@ -402,7 +402,7 @@ class Stc15AOption(BaseOption):
         return bool(self.msr[1] & 128)
 
     def set_eeprom_lvd(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[1] &= 0x7f
         self.msr[1] |= 0x80 if val else 0x00
 
@@ -420,7 +420,7 @@ class Stc15AOption(BaseOption):
         return not bool(self.msr[12] & 2)
 
     def set_ee_erase(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[12] &= 0xfd
         self.msr[12] |= 0x02 if not val else 0x00
 
@@ -428,7 +428,7 @@ class Stc15AOption(BaseOption):
         return not bool(self.msr[12] & 1)
 
     def set_pindetect(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[12] &= 0xfe
         self.msr[12] |= 0x01 if not val else 0x00
 
@@ -463,7 +463,7 @@ class Stc15Option(BaseOption):
         return not bool(self.msr[2] & 16)
 
     def set_reset_pin_enabled(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[2] &= 0xef
         self.msr[2] |= 0x10 if not bool(val) else 0x00
 
@@ -493,7 +493,7 @@ class Stc15Option(BaseOption):
         return not bool(self.msr[0] & 32)
 
     def set_watchdog(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[0] &= 0xdf
         self.msr[0] |= 0x20 if not val else 0x00
 
@@ -501,7 +501,7 @@ class Stc15Option(BaseOption):
         return not bool(self.msr[0] & 8)
 
     def set_watchdog_idle(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[0] &= 0xf7
         self.msr[0] |= 0x08 if not val else 0x00
 
@@ -520,7 +520,7 @@ class Stc15Option(BaseOption):
         return not bool(self.msr[1] & 64)
 
     def set_lvrs(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[1] &= 0xbf
         self.msr[1] |= 0x40 if not val else 0x00
 
@@ -528,7 +528,7 @@ class Stc15Option(BaseOption):
         return bool(self.msr[1] & 128)
 
     def set_eeprom_lvd(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[1] &= 0x7f
         self.msr[1] |= 0x80 if val else 0x00
 
@@ -546,7 +546,7 @@ class Stc15Option(BaseOption):
         return bool(self.msr[3] & 2)
 
     def set_ee_erase(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[3] &= 0xfd
         self.msr[3] |= 0x02 if val else 0x00
 
@@ -554,7 +554,7 @@ class Stc15Option(BaseOption):
         return not bool(self.msr[3] & 1)
 
     def set_pindetect(self, val):
-        val = Utils.to_bool(val);
+        val = Utils.to_bool(val)
         self.msr[3] &= 0xfe
         self.msr[3] |= 0x01 if not val else 0x00
 
