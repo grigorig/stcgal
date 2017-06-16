@@ -114,7 +114,11 @@ class StcBaseProtocol:
 
         # read and check frame start magic
         packet = bytes()
-        packet += self.read_bytes_safe(1)
+        # XXX: skip extraneous 0xFE byte?
+        leading = self.read_bytes_safe(1)
+        if leading == 0xfe:
+            leading = self.read_bytes_safe(1)
+        packet += leading
         # Some (?) BSL versions don't send a frame start with the status
         # packet. Let's be liberal and accept that always, just in case.
         if packet[0] == self.PACKET_MCU[0]:
