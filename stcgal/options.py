@@ -150,7 +150,7 @@ class Stc12AOption(BaseOption):
     def set_low_voltage_detect(self, val):
         lvds = {"low": 1, "high": 0}
         if val not in lvds.keys():
-            raise ValueError("must be one of %s" % list(sources.keys()))
+            raise ValueError("must be one of %s" % list(lvds.keys()))
         self.msr[3] &= 0xbf
         self.msr[3] |= lvds[val] << 6
 
