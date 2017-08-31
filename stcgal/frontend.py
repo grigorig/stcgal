@@ -23,7 +23,7 @@
 import sys
 import argparse
 import stcgal
-from stcgal.utils import Utils, BaudType
+from stcgal.utils import BaudType
 from stcgal.protocols import *
 from stcgal.ihex import IHex
 
@@ -55,13 +55,16 @@ class StcGal:
         self.protocol.debug = opts.debug
 
     def emit_options(self, options):
-        for o in options:
+        """Set options from command line to protocol handler."""
+
+        for opt in options:
             try:
-                kv = o.split("=", 1)
-                if len(kv) < 2: raise ValueError("incorrect format")
+                kv = opt.split("=", 1)
+                if len(kv) < 2:
+                    raise ValueError("incorrect format")
                 self.protocol.set_option(kv[0], kv[1])
-            except ValueError as e:
-                raise NameError("invalid option '%s' (%s)" % (kv[0], e))
+            except ValueError as ex:
+                raise NameError("invalid option '%s' (%s)" % (kv[0], ex))
 
     def load_file_auto(self, fileobj):
         """Load file with Intel Hex autodetection."""
@@ -74,14 +77,16 @@ class StcGal:
                 binary = hexfile.extract_data()
                 print("%d bytes (Intel HEX)" %len(binary))
                 return binary
-            except ValueError as e:
-                raise IOError("invalid Intel HEX file (%s)" %e)
+            except ValueError as ex:
+                raise IOError("invalid Intel HEX file (%s)" %ex)
         else:
             binary = fileobj.read()
             print("%d bytes (Binary)" %len(binary))
             return binary
 
     def program_mcu(self):
+        """Execute the standard programming flow."""
+
         code_size = self.protocol.model.code
         ee_size = self.protocol.model.eeprom
 
@@ -124,6 +129,8 @@ class StcGal:
         self.protocol.disconnect()
 
     def run(self):
+        """Run programmer, main entry point."""
+
         try:
             self.protocol.connect(autoreset=self.opts.autoreset)
 
@@ -140,21 +147,21 @@ class StcGal:
 
             self.protocol.initialize(base_protocol)
         except KeyboardInterrupt:
-            sys.stdout.flush();
+            sys.stdout.flush()
             print("interrupted")
             return 2
-        except (StcFramingException, StcProtocolException) as e:
-            sys.stdout.flush();
-            print("Protocol error: %s" % e, file=sys.stderr)
+        except (StcFramingException, StcProtocolException) as ex:
+            sys.stdout.flush()
+            print("Protocol error: %s" % ex, file=sys.stderr)
             self.protocol.disconnect()
             return 1
-        except serial.SerialException as e:
-            sys.stdout.flush();
-            print("Serial port error: %s" % e, file=sys.stderr)
+        except serial.SerialException as ex:
+            sys.stdout.flush()
+            print("Serial port error: %s" % ex, file=sys.stderr)
             return 1
-        except IOError as e:
-            sys.stdout.flush();
-            print("I/O error: %s" % e, file=sys.stderr)
+        except IOError as ex:
+            sys.stdout.flush()
+            print("I/O error: %s" % ex, file=sys.stderr)
             return 1
 
         try:
@@ -164,27 +171,27 @@ class StcGal:
             else:
                 self.protocol.disconnect()
                 return 0
-        except NameError as e:
-            sys.stdout.flush();
-            print("Option error: %s" % e, file=sys.stderr)
+        except NameError as ex:
+            sys.stdout.flush()
+            print("Option error: %s" % ex, file=sys.stderr)
             self.protocol.disconnect()
             return 1
-        except (StcFramingException, StcProtocolException) as e:
-            sys.stdout.flush();
-            print("Protocol error: %s" % e, file=sys.stderr)
+        except (StcFramingException, StcProtocolException) as ex:
+            sys.stdout.flush()
+            print("Protocol error: %s" % ex, file=sys.stderr)
             self.protocol.disconnect()
             return 1
         except KeyboardInterrupt:
-            sys.stdout.flush();
+            sys.stdout.flush()
             print("interrupted", file=sys.stderr)
             self.protocol.disconnect()
             return 2
-        except serial.SerialException as e:
-            print("Serial port error: %s" % e, file=sys.stderr)
+        except serial.SerialException as ex:
+            print("Serial port error: %s" % ex, file=sys.stderr)
             return 1
-        except IOError as e:
-            sys.stdout.flush();
-            print("I/O error: %s" % e, file=sys.stderr)
+        except IOError as ex:
+            sys.stdout.flush()
+            print("I/O error: %s" % ex, file=sys.stderr)
             self.protocol.disconnect()
             return 1
 

@@ -422,7 +422,7 @@ class Stc89Protocol(StcBaseProtocol):
 
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
-                                           chr(bl_stepping))
+                                            chr(bl_stepping))
 
     def handshake(self):
         """Switch to transfer baudrate
@@ -579,7 +579,7 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
 
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
-                                           chr(bl_stepping))
+                                            chr(bl_stepping))
 
         self.bsl_version = bl_version
 
@@ -768,7 +768,7 @@ class Stc12BaseProtocol(StcBaseProtocol):
 
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
-                                           chr(bl_stepping))
+                                            chr(bl_stepping))
 
         self.bsl_version = bl_version
 
@@ -1018,7 +1018,8 @@ class Stc15AProtocol(Stc12Protocol):
         """
 
         user_speed = self.trim_frequency
-        if user_speed <= 0: user_speed = self.mcu_clock_hz
+        if user_speed <= 0:
+            user_speed = self.mcu_clock_hz
         program_speed = 22118400
 
         user_count = int(self.freq_counter * (user_speed / self.mcu_clock_hz))
@@ -1405,7 +1406,7 @@ class Stc15Protocol(Stc15AProtocol):
         configuration."""
 
         msr = self.options.get_msr()
-        packet  = bytes([0xff] * 23)
+        packet = bytes([0xff] * 23)
         packet += bytes([(self.trim_frequency >> 24) & 0xff,
                          0xff,
                          (self.trim_frequency >> 16) & 0xff,
@@ -1459,8 +1460,9 @@ class StcUsb15Protocol(Stc15Protocol):
 
     def dump_packet(self, data, request=0, value=0, index=0, receive=True):
         if self.debug:
-            print("%s bRequest=%02X wValue=%04X wIndex=%04X data: %s" % (("<-" if receive else "->"),
-                  request, value, index, Utils.hexstr(data, " ")), file=sys.stderr)
+            print("%s bRequest=%02X wValue=%04X wIndex=%04X data: %s" %
+                  (("<-" if receive else "->"), request, value, index,
+                   Utils.hexstr(data, " ")), file=sys.stderr)
 
     def read_packet(self):
         """Read a packet from the MCU"""
@@ -1506,9 +1508,10 @@ class StcUsb15Protocol(Stc15Protocol):
         """Connect to USB device and read info packet"""
 
         # USB support is optional. Provide an error if pyusb is not available.
-        if _usb_available == False:
-            raise StcProtocolException("USB support not available. "
-                + "pyusb is not installed or not working correctly.")
+        if not _usb_available:
+            raise StcProtocolException(
+                "USB support not available. " +
+                "pyusb is not installed or not working correctly.")
 
         print("Waiting for MCU, please cycle power: ", end="")
         sys.stdout.flush()

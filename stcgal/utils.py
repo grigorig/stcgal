@@ -19,28 +19,36 @@
 # SOFTWARE.
 #
 
-import serial
 import argparse
+import serial
 
 class Utils:
+    """Common utility functions"""
+
     @classmethod
-    def to_bool(self, val):
+    def to_bool(cls, val):
         """make sensible boolean from string or other type value"""
 
-        if isinstance(val, bool): return val
-        if isinstance(val, int): return bool(val)
-        if len(val) == 0: return False
-        return True if val[0].lower() == "t" or val[0] == "1" else False
+        if isinstance(val, bool):
+            return val
+        elif isinstance(val, int):
+            return bool(val)
+        elif len(val) == 0:
+            return False
+        else:
+            return True if val[0].lower() == "t" or val[0] == "1" else False
 
     @classmethod
-    def to_int(self, val):
+    def to_int(cls, val):
         """make int from any value, nice error message if not possible"""
 
-        try: return int(val, 0)
-        except: raise ValueError("invalid integer")
+        try:
+            return int(val, 0)
+        except:
+            raise ValueError("invalid integer")
 
     @classmethod
-    def hexstr(self, bytestr, sep=""):
+    def hexstr(cls, bytestr, sep=""):
         """make formatted hex string output from byte sequence"""
 
         return sep.join(["%02X" % x for x in bytestr])
@@ -55,5 +63,5 @@ class BaudType:
             raise argparse.ArgumentTypeError("illegal baudrate")
         return baud
 
-    def __repr__(self): return "baudrate"
-
+    def __repr__(self):
+        return "baudrate"
