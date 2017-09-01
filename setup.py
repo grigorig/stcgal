@@ -56,4 +56,5 @@ setup(
         "Topic :: Software Development",
     ],
     test_suite = "test",
+    tests_require = ["PyYAML"],
 )
