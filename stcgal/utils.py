@@ -29,6 +29,8 @@ class Utils:
     def to_bool(cls, val):
         """make sensible boolean from string or other type value"""
 
+        if val is None:
+            return False
         if isinstance(val, bool):
             return val
         elif isinstance(val, int):
