@@ -53,7 +53,7 @@ class Utils:
     def hexstr(cls, bytestr, sep=""):
         """make formatted hex string output from byte sequence"""
 
-        return sep.join(["%02X" % x for x in bytestr])
+        return sep.join(["%02X" % x for x in bytes(bytestr)])
 
 
 class BaudType:
