@@ -55,4 +55,5 @@ setup(
         "Topic :: Software Development :: Embedded Systems",
         "Topic :: Software Development",
     ],
+    test_suite = "test",
 )
