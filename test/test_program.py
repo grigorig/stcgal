@@ -90,9 +90,14 @@ class ProgramTests(unittest.TestCase):
         """Test a programming cycle with STC15 protocol, F2 series"""
         self._program_yml("./test/iap15f2k61s2.yml", serial_mock, read_mock)
 
-    def test_program_stc15w4(self):
+    @patch("stcgal.protocols.StcBaseProtocol.read_packet")
+    @patch("stcgal.protocols.Stc89Protocol.write_packet")
+    @patch("stcgal.protocols.serial.Serial", autospec=True)
+    @patch("stcgal.protocols.time.sleep")
+    @patch("sys.stdout")
+    def test_program_stc15w4(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15 protocol, W4 series"""
-        self.skipTest("TODO")
+        self._program_yml("./test/stc15w4k56s4.yml", serial_mock, read_mock)
 
     @unittest.skip("trace is broken")
     @patch("stcgal.protocols.StcBaseProtocol.read_packet")
