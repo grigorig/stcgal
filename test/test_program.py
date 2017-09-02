@@ -102,6 +102,15 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc15a(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15A protocol"""
+        self._program_yml("./test/stc15f104e.yml", serial_mock, read_mock)
+
+    @patch("stcgal.protocols.StcBaseProtocol.read_packet")
+    @patch("stcgal.protocols.Stc89Protocol.write_packet")
+    @patch("stcgal.protocols.serial.Serial", autospec=True)
+    @patch("stcgal.protocols.time.sleep")
+    @patch("sys.stdout")
+    def test_program_stc15l1(self, out, sleep_mock, serial_mock, write_mock, read_mock):
+        """Test a programming cycle with STC15 protocol, L1 series"""
         self._program_yml("./test/stc15l104w.yml", serial_mock, read_mock)
 
     def test_program_stc15w4_usb(self):
