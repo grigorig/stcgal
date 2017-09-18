@@ -27,7 +27,7 @@ from setuptools import setup, find_packages
 setup(
     name = "stcgal",
     version = stcgal.__version__,
-    packages = find_packages(exclude=["doc"]),
+    packages = find_packages(exclude=["doc", "test"]),
     install_requires = ["pyserial"],
     extras_require = {
         "usb": ["pyusb>=1.0.0"]
