@@ -2,13 +2,12 @@ sudo: required
 dist: trusty
 language: python
 cache:
-  directories:
-  - "$HOME/.cache/pip"
+  - pip
 python:
-  - 3.4
-  - 3.5
-  - 3.6
-  - pypy3
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "pypy3"
 before_install:
   - sudo apt install rpm dpkg-dev debhelper dh-python
 install:
@@ -18,12 +17,15 @@ script:
   - python setup.py test
   - python setup.py bdist_rpm
   - python setup.py bdist
+  - cp ../*.deb dist/
 deploy:
+  python: "3.5"
   provider: releases
   api_key: $GH_TOKEN
+  file_glob: true
   file:
-  - ../stcgal*.deb
-  - ../stcgal*.rpm
+  - dist/stcgal*.deb
+  - dist/stcgal*.rpm
   skip_cleanup: true
   on:
     tags: true
