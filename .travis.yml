@@ -5,6 +5,7 @@ cache:
 python:
   - 3.4
   - 3.6
+  - pypy3
 install:
   - pip install pyserial pyusb
 script:
