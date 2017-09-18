@@ -9,7 +9,7 @@ python:
   - "3.6"
   - "pypy3"
 before_install:
-  - sudo apt install rpm dpkg-dev debhelper dh-python
+  - sudo apt install rpm dpkg-dev debhelper dh-python fakeroot
 install:
   - pip install pyserial pyusb
 script:
