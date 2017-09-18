@@ -9,17 +9,18 @@ python:
   - "3.6"
   - "pypy3"
 before_install:
-  - sudo apt install rpm dpkg-dev debhelper dh-python python3-setuptools fakeroot
+  - sudo apt install rpm dpkg-dev debhelper dh-python python3-setuptools fakeroot python3-serial python3-yaml
 install:
   - pip install pyserial pyusb
 script:
   - python setup.py build
   - python setup.py test
-  - python setup.py bdist_rpm
-  - dpkg-buildpackage
+  - deactivate
+  - python3 setup.py bdist_rpm
+  - dpkg-buildpackage -uc -us
   - cp ../*.deb dist/
 deploy:
-  python: "3.5"
+  python: "3.4"
   provider: releases
   api_key: $GH_TOKEN
   file_glob: true
