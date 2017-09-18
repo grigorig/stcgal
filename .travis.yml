@@ -1,13 +1,29 @@
+sudo: required
+dist: trusty
 language: python
 cache:
   directories:
   - "$HOME/.cache/pip"
 python:
   - 3.4
+  - 3.5
   - 3.6
   - pypy3
+before_install:
+  - sudo apt install rpm dpkg-dev debhelper dh-python
 install:
   - pip install pyserial pyusb
 script:
   - python setup.py build
   - python setup.py test
+  - python setup.py bdist_rpm
+  - python setup.py bdist
+deploy:
+  provider: releases
+  api_key: $GH_TOKEN
+  file:
+  - ../stcgal*.deb
+  - ../stcgal*.rpm
+  skip_cleanup: true
+  on:
+    tags: true
