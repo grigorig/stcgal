@@ -16,7 +16,7 @@ script:
   - python setup.py build
   - python setup.py test
   - python setup.py bdist_rpm
-  - python setup.py bdist
+  - dpkg-buildpackage
   - cp ../*.deb dist/
 deploy:
   python: "3.5"
