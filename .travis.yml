@@ -1,4 +1,7 @@
 language: python
+cache:
+  directories:
+  - "$HOME/.cache/pip"
 python:
   - 3.4
   - 3.6

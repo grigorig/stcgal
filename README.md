@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/grigorig/stcgal.svg)](https://travis-ci.org/grigorig/stcgal)
+
 stcgal - STC MCU ISP flash tool
 ===============================
 
