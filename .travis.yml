@@ -15,18 +15,19 @@ install:
 script:
   - python setup.py build
   - python setup.py test
+before_deploy:
   - deactivate
   - python3 setup.py bdist_rpm
   - dpkg-buildpackage -uc -us
   - cp ../*.deb dist/
 deploy:
-  python: "3.4"
   provider: releases
   api_key: $GH_TOKEN
   file_glob: true
   file:
-  - dist/stcgal*.deb
-  - dist/stcgal*.rpm
+  - dist/stcgal*_all.deb
+  - dist/stcgal*.noarch.rpm
   skip_cleanup: true
   on:
     tags: true
+    python: "3.4"
