@@ -1089,15 +1089,19 @@ class Stc15AProtocol(Stc12Protocol):
         self.write_packet(packet)
         self.pulse(timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x65:
+        if len(response) < 36 or response[0] != 0x65:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # determine programming speed trim value
         target_trim_a, target_count_a = struct.unpack(">HH", response[28:32])
         target_trim_b, target_count_b = struct.unpack(">HH", response[32:36])
+        if target_count_a == target_count_b:
+            raise StcProtocolException("frequency trimming failed")
         m = (target_trim_b - target_trim_a) / (target_count_b - target_count_a)
         n = target_trim_a - m * target_count_a
         program_trim = round(m * program_count + n)
+        if program_trim > 65535 or program_trim < 0:
+            raise StcProtocolException("frequency trimming failed")
 
         # determine trim trials for second round
         trim_a, count_a = struct.unpack(">HH", response[12:16])
@@ -1116,10 +1120,14 @@ class Stc15AProtocol(Stc12Protocol):
             target_count_a = count_a
             target_count_b = count_b
         # linear interpolate to find range to try next
+        if target_count_a == target_count_b:
+            raise StcProtocolException("frequency trimming failed")
         m = (target_trim_b - target_trim_a) / (target_count_b - target_count_a)
         n = target_trim_a - m * target_count_a
         target_trim = round(m * user_count + n)
         target_trim_start = min(max(target_trim - 5, target_trim_a), target_trim_b)
+        if target_trim_start + 11 > 65535 or target_trim_start < 0:
+            raise StcProtocolException("frequency trimming failed")
 
         # trim challenge-response, second round
         packet = bytes([0x65])
@@ -1131,7 +1139,7 @@ class Stc15AProtocol(Stc12Protocol):
         self.write_packet(packet)
         self.pulse(timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x65:
+        if len(response) < 56 or response[0] != 0x65:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # determine best trim value
@@ -1239,6 +1247,8 @@ class Stc15Protocol(Stc15AProtocol):
         calib_data = response[2:]
         challenge_data = packet[2:]
         calib_len = response[1]
+        if len(calib_data) < 2 * calib_len:
+            raise StcProtocolException("range calibration data missing")
 
         for i in range(calib_len - 1):
             count_a, count_b = struct.unpack(">HH", calib_data[2*i:2*i+4])
@@ -1248,6 +1258,8 @@ class Stc15Protocol(Stc15AProtocol):
                 m = (trim_b - trim_a) / (count_b - count_a)
                 n = trim_a - m * count_a
                 target_trim = round(m * target_count + n)
+                if target_trim > 65536 or target_trim < 0:
+                    raise StcProtocolException("frequency trimming failed")
                 return (target_trim, trim_range)
 
         return None
@@ -1259,6 +1271,8 @@ class Stc15Protocol(Stc15AProtocol):
         calib_data = response[2:]
         challenge_data = packet[2:]
         calib_len = response[1]
+        if len(calib_data) < 2 * calib_len:
+            raise StcProtocolException("trim calibration data missing")
 
         best = None
         best_count = sys.maxsize
@@ -1268,6 +1282,9 @@ class Stc15Protocol(Stc15AProtocol):
             if abs(count - target_count) < best_count:
                 best_count = abs(count - target_count)
                 best = (trim_adj, trim_range), count
+
+        if not best:
+            raise StcProtocolException("frequency trimming failed")
 
         return best
 
