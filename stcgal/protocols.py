@@ -297,6 +297,8 @@ class StcBaseProtocol(ABC):
             try:
                 self.pulse()
                 self.status_packet = self.get_status_packet()
+                if len(self.status_packet) < 23:
+                    raise StcProtocolException("status packet too short")
             except (StcFramingException, serial.SerialTimeoutException): pass
         print("done")
 
@@ -403,6 +405,9 @@ class Stc89Protocol(StcBaseProtocol):
 
     def initialize_options(self, status_packet):
         """Initialize options"""
+
+        if len(status_packet) < 20:
+            raise StcProtocolException("invalid options in status packet")
 
         self.options = Stc89Option(status_packet[19])
         self.options.print()
@@ -640,6 +645,9 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
     def initialize_options(self, status_packet):
         """Initialize options"""
 
+        if len(status_packet) < 31:
+            raise StcProtocolException("invalid options in status packet")
+
         # create option state
         self.options = Stc12AOption(status_packet[23:26] + status_packet[29:30])
         self.options.print()
@@ -829,6 +837,9 @@ class Stc12BaseProtocol(StcBaseProtocol):
     def initialize_options(self, status_packet):
         """Initialize options"""
 
+        if len(status_packet) < 29:
+            raise StcProtocolException("invalid options in status packet")
+
         # create option state
         self.options = Stc12Option(status_packet[23:26] + status_packet[27:28])
         self.options.print()
@@ -962,6 +973,9 @@ class Stc15AProtocol(Stc12Protocol):
 
     def initialize_options(self, status_packet):
         """Initialize options"""
+
+        if len(status_packet) < 37:
+            raise StcProtocolException("invalid options in status packet")
 
         # create option state
         self.options = Stc15AOption(status_packet[23:36])
@@ -1176,7 +1190,11 @@ class Stc15Protocol(Stc15AProtocol):
     def initialize_options(self, status_packet):
         """Initialize options"""
 
+        if len(status_packet) < 14:
+            raise StcProtocolException("invalid options in status packet")
+
         # create option state
+        # XXX: check how option bytes are concatenated here
         self.options = Stc15Option(status_packet[5:8] + status_packet[12:13] + status_packet[37:38])
         self.options.print()
 
