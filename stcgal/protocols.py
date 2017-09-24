@@ -21,12 +21,18 @@
 #
 
 import serial
-import sys, os, time, struct, re, errno
+import sys
+import os
+import time
+import struct
+import re
+import errno
 import argparse
 import collections
 from stcgal.models import MCUModelDatabase
 from stcgal.utils import Utils
-from stcgal.options import *
+from stcgal.options import Stc89Option, Stc12Option, Stc12AOption, Stc15Option, Stc15AOption
+from abc import ABC, abstractmethod
 import functools
 
 try:
@@ -46,7 +52,7 @@ class StcProtocolException(Exception):
     pass
 
 
-class StcBaseProtocol:
+class StcBaseProtocol(ABC):
     """Basic functionality for STC BSL protocols"""
 
     """magic word that starts a packet"""
@@ -102,6 +108,10 @@ class StcBaseProtocol:
             raise StcFramingException("incorrect frame end")
 
         return packet[5:-1]
+
+    @abstractmethod
+    def write_packet(self, packet_data):
+        pass
 
     def read_packet(self):
         """Read and check packet from MCU.
@@ -295,6 +305,16 @@ class StcBaseProtocol:
         self.ser.interCharTimeout = 1.0
 
         self.initialize_model()
+
+    @abstractmethod
+    def initialize_status(self, status_packet):
+        """Initialize internal state from status packet"""
+        pass
+
+    @abstractmethod
+    def initialize_options(self, status_packet):
+        """Initialize options from status packet"""
+        pass
 
     def initialize(self, base_protocol = None):
         if base_protocol:
