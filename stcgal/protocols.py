@@ -536,9 +536,9 @@ class Stc89Protocol(StcBaseProtocol):
             csum = sum(packet[7:]) & 0xff
             self.write_packet(packet)
             response = self.read_packet()
-            if response[0] != 0x80:
+            if len(response) < 1 or response[0] != 0x80:
                 raise StcProtocolException("incorrect magic in write packet")
-            elif response[1] != csum:
+            elif len(response) < 2 or response[1] != csum:
                 raise StcProtocolException("verification checksum mismatch")
             print(".", end="")
             sys.stdout.flush()
@@ -1280,7 +1280,7 @@ class Stc15Protocol(Stc15AProtocol):
         self.write_packet(packet)
         self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x00:
+        if len(response) < 2 or response[0] != 0x00:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # select ranges and trim values
@@ -1299,7 +1299,7 @@ class Stc15Protocol(Stc15AProtocol):
         self.write_packet(packet)
         self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x00:
+        if len(response) < 2 or response[0] != 0x00:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # select final values
@@ -1325,7 +1325,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += bytes([iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x01:
+        if len(response) < 1 or response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
@@ -1342,7 +1342,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += bytes([0x00, 0x00, iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x01:
+        if len(response) < 1 or response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
@@ -1368,9 +1368,9 @@ class Stc15Protocol(Stc15AProtocol):
             packet += bytes([0x00, 0x00, 0x5a, 0xa5])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] == 0x0f:
+        if len(response) == 1 and response[0] == 0x0f:
             raise StcProtocolException("MCU is locked")
-        if response[0] != 0x05:
+        if len(response) < 1 or response[0] != 0x05:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         print("done")
@@ -1391,7 +1391,7 @@ class Stc15Protocol(Stc15AProtocol):
             packet += bytes([0x00, 0x5a, 0xa5])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x03:
+        if len(response) < 1 or response[0] != 0x03:
             raise StcProtocolException("incorrect magic in handshake packet")
         print("done")
 
@@ -1412,7 +1412,7 @@ class Stc15Protocol(Stc15AProtocol):
             while len(packet) < self.PROGRAM_BLOCKSIZE + 3: packet += b"\x00"
             self.write_packet(packet)
             response = self.read_packet()
-            if response[0] != 0x02 or response[1] != 0x54:
+            if len(response) < 2 or response[0] != 0x02 or response[1] != 0x54:
                 raise StcProtocolException("incorrect magic in write packet")
             print(".", end="")
             sys.stdout.flush()
@@ -1425,7 +1425,7 @@ class Stc15Protocol(Stc15AProtocol):
             packet = bytes([0x07, 0x00, 0x00, 0x5a, 0xa5])
             self.write_packet(packet)
             response = self.read_packet()
-            if response[0] != 0x07 or response[1] != 0x54:
+            if len(response) < 2 or response[0] != 0x07 or response[1] != 0x54:
                 raise StcProtocolException("incorrect magic in finish packet")
             print("done")
 
@@ -1464,7 +1464,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += self.build_options()
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x04 or response[1] != 0x54:
+        if len(response) < 2 or response[0] != 0x04 or response[1] != 0x54:
             raise StcProtocolException("incorrect magic in option packet")
         print("done")
 
