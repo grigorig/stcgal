@@ -1433,6 +1433,10 @@ class Stc15Protocol(Stc15AProtocol):
         if len(response) >= 8:
             self.uid = response[1:8]
 
+        # we should have a UID at this point
+        if not self.uid:
+            raise StcProtocolException("UID is missing")
+
     def program_flash(self, data):
         """Program the MCU's flash memory."""
 
