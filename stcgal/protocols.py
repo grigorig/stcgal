@@ -241,7 +241,7 @@ class StcBaseProtocol:
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
-    def connect(self, autoreset=False):
+    def connect(self, autoreset=False, resetcmd=False):
         """Connect to MCU and initialize communication.
 
         Set up serial port, send sync sequence and get part info.
@@ -260,14 +260,18 @@ class StcBaseProtocol:
         self.ser.flushInput()
 
         if autoreset:
-            print("Cycling power: ", end="")
-            sys.stdout.flush()
-            self.ser.setDTR(True)
-            time.sleep(0.5)
-            self.ser.setDTR(False)
-            print("done")
-            print("Waiting for MCU: ", end="")
-            sys.stdout.flush()
+            if not resetcmd:
+                print("Cycling power: ", end="")
+                sys.stdout.flush()
+                self.ser.setDTR(True)
+                time.sleep(0.5)
+                self.ser.setDTR(False)
+                print("done")
+                print("Waiting for MCU: ", end="")
+                sys.stdout.flush()
+            else:
+                print("Cycling power via shell cmd: " + resetcmd)
+                os.system(resetcmd)
         else:
             print("Waiting for MCU, please cycle power: ", end="")
             sys.stdout.flush()
@@ -1504,7 +1508,7 @@ class StcUsb15Protocol(Stc15Protocol):
         host2dev = usb.util.CTRL_TYPE_VENDOR | usb.util.CTRL_RECIPIENT_DEVICE | usb.util.CTRL_OUT
         self.dev.ctrl_transfer(host2dev, request, value, index, chunks)
 
-    def connect(self, autoreset=False):
+    def connect(self, autoreset=False, resetcmd=False):
         """Connect to USB device and read info packet"""
 
         # USB support is optional. Provide an error if pyusb is not available.
