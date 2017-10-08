@@ -973,6 +973,46 @@ class MCUModelDatabase:
         MCUModel(name='STC90LE513AD', magic=0xf18d, total=65536, code=53248, eeprom=10240),
         MCUModel(name='STC90LE514AD', magic=0xf18e, total=65536, code=57344, eeprom=6144),
         MCUModel(name='STC90LE516AD', magic=0xf190, total=65536, code=63488, eeprom=0),
+
+        # Warning, these definitions lack a valid eeprom size.
+        MCUModel(name='STC15F04AD', magic=0xd444, total=4096, code=4096, eeprom=0),
+        MCUModel(name='STC15F06AD', magic=0xd446, total=6144, code=6144, eeprom=0),
+        MCUModel(name='STC15F08AD', magic=0xd448, total=8192, code=8192, eeprom=0),
+        MCUModel(name='STC15F10AD', magic=0xd44a, total=10240, code=10240, eeprom=0),
+        MCUModel(name='STC15F12AD', magic=0xd44c, total=12288, code=12288, eeprom=0),
+        MCUModel(name='STC15F04CCP', magic=0xd434, total=4096, code=4096, eeprom=0),
+        MCUModel(name='STC15F06CCP', magic=0xd436, total=6144, code=6144, eeprom=0),
+        MCUModel(name='STC15F08CCP', magic=0xd438, total=8192, code=8192, eeprom=0),
+        MCUModel(name='STC15F10CCP', magic=0xd43a, total=10240, code=10240, eeprom=0),
+        MCUModel(name='STC15F12CCP', magic=0xd43c, total=12288, code=12288, eeprom=0),
+        MCUModel(name='STC15F04', magic=0xd404, total=4096, code=4096, eeprom=0),
+        MCUModel(name='STC15F06', magic=0xd406, total=6144, code=6144, eeprom=0),
+        MCUModel(name='STC15F08', magic=0xd408, total=8192, code=8192, eeprom=0),
+        MCUModel(name='STC15F10', magic=0xd40a, total=10240, code=10240, eeprom=0),
+        MCUModel(name='STC15F12', magic=0xd40c, total=12288, code=12288, eeprom=0),
+        MCUModel(name='IAP15F08AD', magic=0xd458, total=8192, code=8192, eeprom=0),
+        MCUModel(name='IAP15F10AD', magic=0xd45a, total=10240, code=10240, eeprom=0),
+        MCUModel(name='IAP15F12AD', magic=0xd45c, total=12288, code=12288, eeprom=0),
+        MCUModel(name='IAP15F14AD', magic=0xd45e, total=14336, code=14336, eeprom=0),
+        MCUModel(name='STC15L04AD', magic=0xd4c4, total=4096, code=4096, eeprom=0),
+        MCUModel(name='STC15L06AD', magic=0xd4c6, total=6144, code=6144, eeprom=0),
+        MCUModel(name='STC15L08AD', magic=0xd4c8, total=8192, code=8192, eeprom=0),
+        MCUModel(name='STC15L10AD', magic=0xd4ca, total=10240, code=10240, eeprom=0),
+        MCUModel(name='STC15L12AD', magic=0xd4cc, total=12288, code=12288, eeprom=0),
+        MCUModel(name='STC15L04CCP', magic=0xd4b4, total=4096, code=4096, eeprom=0),
+        MCUModel(name='STC15L06CCP', magic=0xd4b6, total=6144, code=6144, eeprom=0),
+        MCUModel(name='STC15L08CCP', magic=0xd4b8, total=8192, code=8192, eeprom=0),
+        MCUModel(name='STC15L10CCP', magic=0xd4ba, total=10240, code=10240, eeprom=0),
+        MCUModel(name='STC15L12CCP', magic=0xd4bc, total=12288, code=12288, eeprom=0),
+        MCUModel(name='STC15L04', magic=0xd484, total=4096, code=4096, eeprom=0),
+        MCUModel(name='STC15L06', magic=0xd486, total=6144, code=6144, eeprom=0),
+        MCUModel(name='STC15L08', magic=0xd488, total=8192, code=8192, eeprom=0),
+        MCUModel(name='STC15L10', magic=0xd48a, total=10240, code=10240, eeprom=0),
+        MCUModel(name='STC15L12', magic=0xd48c, total=12288, code=12288, eeprom=0),
+        MCUModel(name='IAP15L08AD', magic=0xd4d8, total=8192, code=8192, eeprom=0),
+        MCUModel(name='IAP15L10AD', magic=0xd4da, total=10240, code=10240, eeprom=0),
+        MCUModel(name='IAP15L12AD', magic=0xd4dc, total=12288, code=12288, eeprom=0),
+        MCUModel(name='IAP15L14AD', magic=0xd4de, total=14336, code=14336, eeprom=0),
     )
 
     @classmethod
@@ -988,6 +1028,3 @@ class MCUModelDatabase:
         print("  Magic: %02X%02X" % (model.magic >> 8, model.magic & 0xff))
         print("  Code flash: %.1f KB" % (model.code / 1024.0))
         print("  EEPROM flash: %.1f KB" % (model.eeprom / 1024.0))
-
-
-

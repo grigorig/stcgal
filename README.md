@@ -61,7 +61,7 @@ Features
 * Set device options
 * Read unique device ID (STC 10/11/12/15)
 * Trim RC oscillator frequency (STC 15)
-* Automatic power-cycling with DTR toggle
+* Automatic power-cycling with DTR toggle or a custom shell command
 * Automatic UART protocol detection
 
 Installation
@@ -96,6 +96,9 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -a, --autoreset       cycle power automatically by asserting DTR
+  -r RESETCMD, --resetcmd RESETCMD
+                        Use this shell command for board power-cycling
+                        (instead of DTR assertion)
   -P {stc89,stc12a,stc12,stc15a,stc15,auto}, --protocol {stc89,stc12a,stc12,stc15a,stc15,auto}
                         protocol version
   -p PORT, --port PORT  serial port device
@@ -276,7 +279,22 @@ serial interface to automate this. The DTR signal is asserted for
 approximately 500 ms when the autoreset feature is enabled with the
 ```-a``` flag. This requires external circuitry to actually switch the
 power. In some cases, when the microcontroller draws only little power,
-it is possible to directly supply power from the DTR signal, however.
+it is possible to directly supply power from the DTR signal.
+
+As an alternative to DTR, you can use a custom shell command or an external
+script (via -r option) to reset the  device. You should specify the command
+along with -a option. Do not forget the quotes!
+
+Example:
+
+```
+  $ ./stcgal.py -P stc15 -a -r "echo 1 > /sys/class/gpio/gpio666/value"
+```
+or
+
+```
+  $ ./stcgal.py -P stc15 -a -r "./powercycle.sh"
+```
 
 ### Exit status
 
