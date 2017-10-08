@@ -241,6 +241,21 @@ class StcBaseProtocol:
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
+    def reset_device(self, resetcmd=False):
+        if not resetcmd:
+            print("Cycling power: ", end="")
+            sys.stdout.flush()
+            self.ser.setDTR(True)
+            time.sleep(0.5)
+            self.ser.setDTR(False)
+            print("done")
+        else:
+            print("Cycling power via shell cmd: " + resetcmd)
+            os.system(resetcmd)
+
+        print("Waiting for MCU: ", end="")
+        sys.stdout.flush()
+
     def connect(self, autoreset=False, resetcmd=False):
         """Connect to MCU and initialize communication.
 
@@ -260,18 +275,7 @@ class StcBaseProtocol:
         self.ser.flushInput()
 
         if autoreset:
-            if not resetcmd:
-                print("Cycling power: ", end="")
-                sys.stdout.flush()
-                self.ser.setDTR(True)
-                time.sleep(0.5)
-                self.ser.setDTR(False)
-                print("done")
-                print("Waiting for MCU: ", end="")
-                sys.stdout.flush()
-            else:
-                print("Cycling power via shell cmd: " + resetcmd)
-                os.system(resetcmd)
+            self.reset_device(resetcmd)
         else:
             print("Waiting for MCU, please cycle power: ", end="")
             sys.stdout.flush()
