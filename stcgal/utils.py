@@ -29,14 +29,12 @@ class Utils:
     def to_bool(cls, val):
         """make sensible boolean from string or other type value"""
 
-        if val is None:
+        if not val:
             return False
         if isinstance(val, bool):
             return val
         elif isinstance(val, int):
             return bool(val)
-        elif len(val) == 0:
-            return False
         else:
             return True if val[0].lower() == "t" or val[0] == "1" else False
 
