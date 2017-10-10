@@ -238,6 +238,20 @@ class StcBaseProtocol:
 
         return iap_wait
 
+    def delay_safely_written(self, length):
+        """
+        Delay until data has been safely written and sent to device.
+        Some buggy serial drivers don't implement tcdrain/flush correctly.
+        That is, they wait until all data has been written to USB, but they
+        do not wait until the data has actually finished transmission.
+        Add additional delay to work around.
+        """
+
+        bit_time = 1.0 / self.ser.baudrate
+        byte_time = bit_time * 11.0 # start, 8 data bits, stop, parity
+        clock_safety_factor = 1.05 # additional delay in case clock is slow
+        time.sleep(byte_time * length * clock_safety_factor)
+
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
@@ -448,7 +462,7 @@ class Stc89Protocol(StcBaseProtocol):
         packet += struct.pack(">H", brt)
         packet += bytes([0xff - (brt >> 8), brt_csum, delay, iap])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         self.ser.baudrate = self.baud_handshake
@@ -462,7 +476,7 @@ class Stc89Protocol(StcBaseProtocol):
         packet += struct.pack(">H", brt)
         packet += bytes([0xff - (brt >> 8), brt_csum, delay])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x8e:
@@ -638,7 +652,7 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
         sys.stdout.flush()
         packet = bytes([0x8f, 0xc0, brt, 0x3f, brt_csum, delay, iap])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         self.ser.baudrate = self.baud_handshake
@@ -650,7 +664,7 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
         sys.stdout.flush()
         packet = bytes([0x8e, 0xc0, brt, 0x3f, brt_csum, delay])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x8e:
@@ -835,7 +849,7 @@ class Stc12BaseProtocol(StcBaseProtocol):
         sys.stdout.flush()
         packet = bytes([0x8f, 0xc0, brt, 0x3f, brt_csum, delay, iap])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         self.ser.baudrate = self.baud_handshake
@@ -847,7 +861,7 @@ class Stc12BaseProtocol(StcBaseProtocol):
         sys.stdout.flush()
         packet = bytes([0x8e, 0xc0, brt, 0x3f, brt_csum, delay])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x84:
@@ -1121,7 +1135,7 @@ class Stc15AProtocol(Stc12Protocol):
         packet += struct.pack(">B", 230400 // self.baud_transfer)
         packet += bytes([0xa1, 0x64, 0xb8, 0x00, iap_wait, 0x20, 0xff, 0x00])
         self.write_packet(packet)
-        time.sleep(0.2)
+        self.delay_safely_written(len(packet))
         self.ser.baudrate = self.baud_transfer
         response = self.read_packet()
         if response[0] != 0x84:
@@ -1307,7 +1321,6 @@ class Stc15Protocol(Stc15AProtocol):
         response = self.read_packet()
         if response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
-        time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
 
     def switch_baud_ext(self):
@@ -1324,7 +1337,6 @@ class Stc15Protocol(Stc15AProtocol):
         response = self.read_packet()
         if response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
-        time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
 
         # for switching back to RC, program factory values
