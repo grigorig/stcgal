@@ -32,7 +32,10 @@ class StcGal:
 
     def __init__(self, opts):
         self.opts = opts
+        self.initialize_protocol(opts)
 
+    def initialize_protocol(self, opts):
+        """Initialize protocol backend"""
         if opts.protocol == "stc89":
             self.protocol = Stc89Protocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc12a":
@@ -50,8 +53,7 @@ class StcGal:
         elif opts.protocol == "usb15":
             self.protocol = StcUsb15Protocol()
         else:
-            self.protocol = StcBaseProtocol(opts.port, opts.handshake, opts.baud)
-
+            self.protocol = StcAutoProtocol(opts.port, opts.handshake, opts.baud)
         self.protocol.debug = opts.debug
 
     def emit_options(self, options):
@@ -133,14 +135,14 @@ class StcGal:
 
         try:
             self.protocol.connect(autoreset=self.opts.autoreset, resetcmd=self.opts.resetcmd)
-            if self.opts.protocol == "auto":
+            if isinstance(self.protocol, StcAutoProtocol):
                 if not self.protocol.protocol_name:
                     raise StcProtocolException("cannot detect protocol")
                 base_protocol = self.protocol
                 self.opts.protocol = self.protocol.protocol_name
                 print("Protocol detected: %s" % self.opts.protocol)
                 # recreate self.protocol with proper protocol class
-                self.__init__(self.opts)
+                self.initialize_protocol(self.opts)
             else:
                 base_protocol = None
 

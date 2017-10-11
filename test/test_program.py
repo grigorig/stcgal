@@ -133,4 +133,3 @@ class ProgramTests(unittest.TestCase):
             read_mock.side_effect = convert_to_bytes(test_data["responses"])
             gal = stcgal.frontend.StcGal(opts)
             self.assertEqual(gal.run(), 0)
-    

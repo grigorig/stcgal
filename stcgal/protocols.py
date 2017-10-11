@@ -202,20 +202,6 @@ class StcBaseProtocol(ABC):
             mcu_name += "E" if self.status_packet[17] < 0x70 else "W"
             self.model = self.model._replace(name = mcu_name)
 
-        protocol_database = [("stc89", r"STC(89|90)(C|LE)\d"),
-                             ("stc12a", r"STC12(C|LE)\d052"),
-                             ("stc12b", r"STC12(C|LE)(52|56)"),
-                             ("stc12", r"(STC|IAP)(10|11|12)\D"),
-                             ("stc15a", r"(STC|IAP)15[FL][01]0\d(E|EA|)$"),
-                             ("stc15", r"(STC|IAP|IRC)15\D")]
-
-        for protocol_name, pattern in protocol_database:
-            if re.match(pattern, self.model.name):
-                self.protocol_name = protocol_name
-                break
-        else:
-            self.protocol_name = None
-
     def get_status_packet(self):
         """Read and decode status packet"""
 
@@ -318,7 +304,11 @@ class StcBaseProtocol(ABC):
         """Initialize options from status packet"""
         pass
 
-    def initialize(self, base_protocol = None):
+    def initialize(self, base_protocol=None):
+        """
+        Initialize from another instance. This is an alternative for calling
+        connect() and is used by protocol autodetection.
+        """
         if base_protocol:
             self.ser = base_protocol.ser
             self.ser.parity = self.PARITY
@@ -344,6 +334,39 @@ class StcBaseProtocol(ABC):
         self.write_packet(packet)
         self.ser.close()
         print("Disconnected!")
+
+
+class StcAutoProtocol(StcBaseProtocol):
+    """
+    Protocol handler for autodetection of protocols. Does not implement full
+    functionality for any device class.
+    """
+
+    def initialize_model(self):
+        super().initialize_model()
+
+        protocol_database = [("stc89", r"STC(89|90)(C|LE)\d"),
+                             ("stc12a", r"STC12(C|LE)\d052"),
+                             ("stc12b", r"STC12(C|LE)(52|56)"),
+                             ("stc12", r"(STC|IAP)(10|11|12)\D"),
+                             ("stc15a", r"(STC|IAP)15[FL][01]0\d(E|EA|)$"),
+                             ("stc15", r"(STC|IAP|IRC)15\D")]
+
+        for protocol_name, pattern in protocol_database:
+            if re.match(pattern, self.model.name):
+                self.protocol_name = protocol_name
+                break
+        else:
+            self.protocol_name = None
+
+    def initialize_options(self, status_packet):
+        raise NotImplementedError
+
+    def initialize_status(self, status_packet):
+        raise NotImplementedError
+
+    def write_packet(self, packet_data):
+        raise NotImplementedError
 
 
 class Stc89Protocol(StcBaseProtocol):
