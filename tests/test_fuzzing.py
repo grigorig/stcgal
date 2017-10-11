@@ -29,7 +29,7 @@ from unittest.mock import patch
 import yaml
 import stcgal.frontend
 import stcgal.protocols
-from test.test_program import get_default_opts, convert_to_bytes
+from tests.test_program import get_default_opts, convert_to_bytes
 
 class ByteArrayFuzzer:
     """Fuzzer for byte arrays"""
@@ -78,13 +78,13 @@ class TestProgramFuzzed(unittest.TestCase):
     def test_program_fuzz(self, err, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test programming cycles with fuzzing enabled"""
         yml = [
-            "./test/iap15f2k61s2.yml",
-            "./test/stc12c2052ad.yml",
-            "./test/stc15w4k56s4.yml",
-            "./test/stc12c5a60s2.yml",
-            "./test/stc89c52rc.yml",
-            "./test/stc15l104w.yml",
-            "./test/stc15f104e.yml",
+            "./tests/iap15f2k61s2.yml",
+            "./tests/stc12c2052ad.yml",
+            "./tests/stc15w4k56s4.yml",
+            "./tests/stc12c5a60s2.yml",
+            "./tests/stc89c52rc.yml",
+            "./tests/stc15l104w.yml",
+            "./tests/stc15f104e.yml",
         ]
         fuzzer = ByteArrayFuzzer()
         fuzzer.cut_propability = 0.01

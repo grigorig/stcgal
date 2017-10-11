@@ -57,7 +57,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc89(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC89 protocol"""
-        self._program_yml("./test/stc89c52rc.yml", serial_mock, read_mock)
+        self._program_yml("./tests/stc89c52rc.yml", serial_mock, read_mock)
 
     @patch("stcgal.protocols.StcBaseProtocol.read_packet")
     @patch("stcgal.protocols.Stc89Protocol.write_packet")
@@ -66,7 +66,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc12(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC12 protocol"""
-        self._program_yml("./test/stc12c5a60s2.yml", serial_mock, read_mock)
+        self._program_yml("./tests/stc12c5a60s2.yml", serial_mock, read_mock)
 
     @patch("stcgal.protocols.StcBaseProtocol.read_packet")
     @patch("stcgal.protocols.Stc89Protocol.write_packet")
@@ -75,7 +75,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc12a(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC12A protocol"""
-        self._program_yml("./test/stc12c2052ad.yml", serial_mock, read_mock)
+        self._program_yml("./tests/stc12c2052ad.yml", serial_mock, read_mock)
 
     def test_program_stc12b(self):
         """Test a programming cycle with STC12B protocol"""
@@ -88,7 +88,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc15f2(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15 protocol, F2 series"""
-        self._program_yml("./test/iap15f2k61s2.yml", serial_mock, read_mock)
+        self._program_yml("./tests/iap15f2k61s2.yml", serial_mock, read_mock)
 
     @patch("stcgal.protocols.StcBaseProtocol.read_packet")
     @patch("stcgal.protocols.Stc89Protocol.write_packet")
@@ -97,7 +97,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc15w4(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15 protocol, W4 series"""
-        self._program_yml("./test/stc15w4k56s4.yml", serial_mock, read_mock)
+        self._program_yml("./tests/stc15w4k56s4.yml", serial_mock, read_mock)
 
     @unittest.skip("trace is broken")
     @patch("stcgal.protocols.StcBaseProtocol.read_packet")
@@ -107,7 +107,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc15a(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15A protocol"""
-        self._program_yml("./test/stc15f104e.yml", serial_mock, read_mock)
+        self._program_yml("./tests/stc15f104e.yml", serial_mock, read_mock)
 
     @patch("stcgal.protocols.StcBaseProtocol.read_packet")
     @patch("stcgal.protocols.Stc89Protocol.write_packet")
@@ -116,7 +116,7 @@ class ProgramTests(unittest.TestCase):
     @patch("sys.stdout")
     def test_program_stc15l1(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15 protocol, L1 series"""
-        self._program_yml("./test/stc15l104w.yml", serial_mock, read_mock)
+        self._program_yml("./tests/stc15l104w.yml", serial_mock, read_mock)
 
     def test_program_stc15w4_usb(self):
         """Test a programming cycle with STC15W4 USB protocol"""
