@@ -249,7 +249,7 @@ class StcBaseProtocol:
 
         bit_time = 1.0 / self.ser.baudrate
         byte_time = bit_time * 11.0 # start, 8 data bits, stop, parity
-        clock_safety_factor = 1.05 # additional delay in case clock is slow
+        clock_safety_factor = 2.5 # additional delay in case clock is slow
         time.sleep(byte_time * length * clock_safety_factor)
 
     def set_option(self, name, value):
