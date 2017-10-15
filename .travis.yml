@@ -11,7 +11,7 @@ python:
 before_install:
   - sudo apt install rpm dpkg-dev debhelper dh-python python3-setuptools fakeroot python3-serial python3-yaml
 install:
-  - pip install pyserial pyusb
+  - pip install pyserial pyusb tqdm
 script:
   - python setup.py build
   - python setup.py test
