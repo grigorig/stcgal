@@ -21,12 +21,18 @@
 #
 
 import serial
-import sys, os, time, struct, re, errno
+import sys
+import os
+import time
+import struct
+import re
+import errno
 import argparse
 import collections
 from stcgal.models import MCUModelDatabase
 from stcgal.utils import Utils
-from stcgal.options import *
+from stcgal.options import Stc89Option, Stc12Option, Stc12AOption, Stc15Option, Stc15AOption
+from abc import ABC, abstractmethod
 import functools
 
 try:
@@ -46,7 +52,7 @@ class StcProtocolException(Exception):
     pass
 
 
-class StcBaseProtocol:
+class StcBaseProtocol(ABC):
     """Basic functionality for STC BSL protocols"""
 
     """magic word that starts a packet"""
@@ -102,6 +108,10 @@ class StcBaseProtocol:
             raise StcFramingException("incorrect frame end")
 
         return packet[5:-1]
+
+    @abstractmethod
+    def write_packet(self, packet_data):
+        pass
 
     def read_packet(self):
         """Read and check packet from MCU.
@@ -192,20 +202,6 @@ class StcBaseProtocol:
             mcu_name += "E" if self.status_packet[17] < 0x70 else "W"
             self.model = self.model._replace(name = mcu_name)
 
-        protocol_database = [("stc89", r"STC(89|90)(C|LE)\d"),
-                             ("stc12a", r"STC12(C|LE)\d052"),
-                             ("stc12b", r"STC12(C|LE)(52|56)"),
-                             ("stc12", r"(STC|IAP)(10|11|12)\D"),
-                             ("stc15a", r"(STC|IAP)15[FL][01]0\d(E|EA|)$"),
-                             ("stc15", r"(STC|IAP|IRC)15\D")]
-
-        for protocol_name, pattern in protocol_database:
-            if re.match(pattern, self.model.name):
-                self.protocol_name = protocol_name
-                break
-        else:
-            self.protocol_name = None
-
     def get_status_packet(self):
         """Read and decode status packet"""
 
@@ -287,6 +283,8 @@ class StcBaseProtocol:
             try:
                 self.pulse()
                 self.status_packet = self.get_status_packet()
+                if len(self.status_packet) < 23:
+                    raise StcProtocolException("status packet too short")
             except (StcFramingException, serial.SerialTimeoutException): pass
         print("done")
 
@@ -296,7 +294,21 @@ class StcBaseProtocol:
 
         self.initialize_model()
 
-    def initialize(self, base_protocol = None):
+    @abstractmethod
+    def initialize_status(self, status_packet):
+        """Initialize internal state from status packet"""
+        pass
+
+    @abstractmethod
+    def initialize_options(self, status_packet):
+        """Initialize options from status packet"""
+        pass
+
+    def initialize(self, base_protocol=None):
+        """
+        Initialize from another instance. This is an alternative for calling
+        connect() and is used by protocol autodetection.
+        """
         if base_protocol:
             self.ser = base_protocol.ser
             self.ser.parity = self.PARITY
@@ -322,6 +334,39 @@ class StcBaseProtocol:
         self.write_packet(packet)
         self.ser.close()
         print("Disconnected!")
+
+
+class StcAutoProtocol(StcBaseProtocol):
+    """
+    Protocol handler for autodetection of protocols. Does not implement full
+    functionality for any device class.
+    """
+
+    def initialize_model(self):
+        super().initialize_model()
+
+        protocol_database = [("stc89", r"STC(89|90)(C|LE)\d"),
+                             ("stc12a", r"STC12(C|LE)\d052"),
+                             ("stc12b", r"STC12(C|LE)(52|56)"),
+                             ("stc12", r"(STC|IAP)(10|11|12)\D"),
+                             ("stc15a", r"(STC|IAP)15[FL][01]0\d(E|EA|)$"),
+                             ("stc15", r"(STC|IAP|IRC)15\D")]
+
+        for protocol_name, pattern in protocol_database:
+            if re.match(pattern, self.model.name):
+                self.protocol_name = protocol_name
+                break
+        else:
+            self.protocol_name = None
+
+    def initialize_options(self, status_packet):
+        raise NotImplementedError
+
+    def initialize_status(self, status_packet):
+        raise NotImplementedError
+
+    def write_packet(self, packet_data):
+        raise NotImplementedError
 
 
 class Stc89Protocol(StcBaseProtocol):
@@ -383,6 +428,9 @@ class Stc89Protocol(StcBaseProtocol):
 
     def initialize_options(self, status_packet):
         """Initialize options"""
+
+        if len(status_packet) < 20:
+            raise StcProtocolException("invalid options in status packet")
 
         self.options = Stc89Option(status_packet[19])
         self.options.print()
@@ -516,9 +564,9 @@ class Stc89Protocol(StcBaseProtocol):
             csum = sum(packet[7:]) & 0xff
             self.write_packet(packet)
             response = self.read_packet()
-            if response[0] != 0x80:
+            if len(response) < 1 or response[0] != 0x80:
                 raise StcProtocolException("incorrect magic in write packet")
-            elif response[1] != csum:
+            elif len(response) < 2 or response[1] != csum:
                 raise StcProtocolException("verification checksum mismatch")
             print(".", end="")
             sys.stdout.flush()
@@ -619,6 +667,9 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
 
     def initialize_options(self, status_packet):
         """Initialize options"""
+
+        if len(status_packet) < 31:
+            raise StcProtocolException("invalid options in status packet")
 
         # create option state
         self.options = Stc12AOption(status_packet[23:26] + status_packet[29:30])
@@ -809,6 +860,9 @@ class Stc12BaseProtocol(StcBaseProtocol):
     def initialize_options(self, status_packet):
         """Initialize options"""
 
+        if len(status_packet) < 29:
+            raise StcProtocolException("invalid options in status packet")
+
         # create option state
         self.options = Stc12Option(status_packet[23:26] + status_packet[27:28])
         self.options.print()
@@ -943,6 +997,9 @@ class Stc15AProtocol(Stc12Protocol):
     def initialize_options(self, status_packet):
         """Initialize options"""
 
+        if len(status_packet) < 37:
+            raise StcProtocolException("invalid options in status packet")
+
         # create option state
         self.options = Stc15AOption(status_packet[23:36])
         self.options.print()
@@ -1055,15 +1112,19 @@ class Stc15AProtocol(Stc12Protocol):
         self.write_packet(packet)
         self.pulse(timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x65:
+        if len(response) < 36 or response[0] != 0x65:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # determine programming speed trim value
         target_trim_a, target_count_a = struct.unpack(">HH", response[28:32])
         target_trim_b, target_count_b = struct.unpack(">HH", response[32:36])
+        if target_count_a == target_count_b:
+            raise StcProtocolException("frequency trimming failed")
         m = (target_trim_b - target_trim_a) / (target_count_b - target_count_a)
         n = target_trim_a - m * target_count_a
         program_trim = round(m * program_count + n)
+        if program_trim > 65535 or program_trim < 0:
+            raise StcProtocolException("frequency trimming failed")
 
         # determine trim trials for second round
         trim_a, count_a = struct.unpack(">HH", response[12:16])
@@ -1082,10 +1143,14 @@ class Stc15AProtocol(Stc12Protocol):
             target_count_a = count_a
             target_count_b = count_b
         # linear interpolate to find range to try next
+        if target_count_a == target_count_b:
+            raise StcProtocolException("frequency trimming failed")
         m = (target_trim_b - target_trim_a) / (target_count_b - target_count_a)
         n = target_trim_a - m * target_count_a
         target_trim = round(m * user_count + n)
         target_trim_start = min(max(target_trim - 5, target_trim_a), target_trim_b)
+        if target_trim_start + 11 > 65535 or target_trim_start < 0:
+            raise StcProtocolException("frequency trimming failed")
 
         # trim challenge-response, second round
         packet = bytes([0x65])
@@ -1097,7 +1162,7 @@ class Stc15AProtocol(Stc12Protocol):
         self.write_packet(packet)
         self.pulse(timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x65:
+        if len(response) < 56 or response[0] != 0x65:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # determine best trim value
@@ -1156,7 +1221,11 @@ class Stc15Protocol(Stc15AProtocol):
     def initialize_options(self, status_packet):
         """Initialize options"""
 
+        if len(status_packet) < 14:
+            raise StcProtocolException("invalid options in status packet")
+
         # create option state
+        # XXX: check how option bytes are concatenated here
         self.options = Stc15Option(status_packet[5:8] + status_packet[12:13] + status_packet[37:38])
         self.options.print()
 
@@ -1201,6 +1270,8 @@ class Stc15Protocol(Stc15AProtocol):
         calib_data = response[2:]
         challenge_data = packet[2:]
         calib_len = response[1]
+        if len(calib_data) < 2 * calib_len:
+            raise StcProtocolException("range calibration data missing")
 
         for i in range(calib_len - 1):
             count_a, count_b = struct.unpack(">HH", calib_data[2*i:2*i+4])
@@ -1210,6 +1281,8 @@ class Stc15Protocol(Stc15AProtocol):
                 m = (trim_b - trim_a) / (count_b - count_a)
                 n = trim_a - m * count_a
                 target_trim = round(m * target_count + n)
+                if target_trim > 65536 or target_trim < 0:
+                    raise StcProtocolException("frequency trimming failed")
                 return (target_trim, trim_range)
 
         return None
@@ -1221,6 +1294,8 @@ class Stc15Protocol(Stc15AProtocol):
         calib_data = response[2:]
         challenge_data = packet[2:]
         calib_len = response[1]
+        if len(calib_data) < 2 * calib_len:
+            raise StcProtocolException("trim calibration data missing")
 
         best = None
         best_count = sys.maxsize
@@ -1230,6 +1305,9 @@ class Stc15Protocol(Stc15AProtocol):
             if abs(count - target_count) < best_count:
                 best_count = abs(count - target_count)
                 best = (trim_adj, trim_range), count
+
+        if not best:
+            raise StcProtocolException("frequency trimming failed")
 
         return best
 
@@ -1260,7 +1338,7 @@ class Stc15Protocol(Stc15AProtocol):
         self.write_packet(packet)
         self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x00:
+        if len(response) < 2 or response[0] != 0x00:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # select ranges and trim values
@@ -1279,7 +1357,7 @@ class Stc15Protocol(Stc15AProtocol):
         self.write_packet(packet)
         self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
-        if response[0] != 0x00:
+        if len(response) < 2 or response[0] != 0x00:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # select final values
@@ -1305,7 +1383,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += bytes([iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x01:
+        if len(response) < 1 or response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
@@ -1322,7 +1400,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += bytes([0x00, 0x00, iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x01:
+        if len(response) < 1 or response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
         time.sleep(0.2)
         self.ser.baudrate = self.baud_transfer
@@ -1348,9 +1426,9 @@ class Stc15Protocol(Stc15AProtocol):
             packet += bytes([0x00, 0x00, 0x5a, 0xa5])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] == 0x0f:
+        if len(response) == 1 and response[0] == 0x0f:
             raise StcProtocolException("MCU is locked")
-        if response[0] != 0x05:
+        if len(response) < 1 or response[0] != 0x05:
             raise StcProtocolException("incorrect magic in handshake packet")
 
         print("done")
@@ -1371,12 +1449,16 @@ class Stc15Protocol(Stc15AProtocol):
             packet += bytes([0x00, 0x5a, 0xa5])
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x03:
+        if len(response) < 1 or response[0] != 0x03:
             raise StcProtocolException("incorrect magic in handshake packet")
         print("done")
 
         if len(response) >= 8:
             self.uid = response[1:8]
+
+        # we should have a UID at this point
+        if not self.uid:
+            raise StcProtocolException("UID is missing")
 
     def program_flash(self, data):
         """Program the MCU's flash memory."""
@@ -1392,7 +1474,7 @@ class Stc15Protocol(Stc15AProtocol):
             while len(packet) < self.PROGRAM_BLOCKSIZE + 3: packet += b"\x00"
             self.write_packet(packet)
             response = self.read_packet()
-            if response[0] != 0x02 or response[1] != 0x54:
+            if len(response) < 2 or response[0] != 0x02 or response[1] != 0x54:
                 raise StcProtocolException("incorrect magic in write packet")
             print(".", end="")
             sys.stdout.flush()
@@ -1405,7 +1487,7 @@ class Stc15Protocol(Stc15AProtocol):
             packet = bytes([0x07, 0x00, 0x00, 0x5a, 0xa5])
             self.write_packet(packet)
             response = self.read_packet()
-            if response[0] != 0x07 or response[1] != 0x54:
+            if len(response) < 2 or response[0] != 0x07 or response[1] != 0x54:
                 raise StcProtocolException("incorrect magic in finish packet")
             print("done")
 
@@ -1444,7 +1526,7 @@ class Stc15Protocol(Stc15AProtocol):
         packet += self.build_options()
         self.write_packet(packet)
         response = self.read_packet()
-        if response[0] != 0x04 or response[1] != 0x54:
+        if len(response) < 2 or response[0] != 0x04 or response[1] != 0x54:
             raise StcProtocolException("incorrect magic in option packet")
         print("done")
 

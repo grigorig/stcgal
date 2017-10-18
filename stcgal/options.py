@@ -21,15 +21,24 @@
 #
 
 import struct
+from abc import ABC
 from stcgal.utils import Utils
 
-class BaseOption:
+class BaseOption(ABC):
+    """Base class for options"""
+
+    def __init__(self):
+        self.options = ()
+        self.msr = None
+
     def print(self):
+        """Print current configuration to standard output"""
         print("Target options:")
         for name, get_func, _ in self.options:
             print("  %s=%s" % (name, get_func()))
 
     def set_option(self, name, value):
+        """Set value of a specific option"""
         for opt, _, set_func in self.options:
             if opt == name:
                 print("Option %s=%s" % (name, value))
@@ -38,12 +47,14 @@ class BaseOption:
         raise ValueError("unknown")
 
     def get_option(self, name):
+        """Get option value for a specific option"""
         for opt, get_func, _ in self.options:
             if opt == name:
                 return get_func(name)
         raise ValueError("unknown")
 
     def get_msr(self):
+        """Get array of model-specific configuration registers"""
         return bytes(self.msr)
 
 
@@ -51,6 +62,7 @@ class Stc89Option(BaseOption):
     """Manipulation STC89 series option byte"""
 
     def __init__(self, msr):
+        super().__init__()
         self.msr = msr
         self.options = (
             ("cpu_6t_enabled", self.get_t6, self.set_t6),
@@ -129,6 +141,7 @@ class Stc12AOption(BaseOption):
     """Manipulate STC12A series option bytes"""
 
     def __init__(self, msr):
+        super().__init__()
         assert len(msr) == 4
         self.msr = bytearray(msr)
 
@@ -213,6 +226,7 @@ class Stc12Option(BaseOption):
     """Manipulate STC10/11/12 series option bytes"""
 
     def __init__(self, msr):
+        super().__init__()
         assert len(msr) == 4
         self.msr = bytearray(msr)
 
@@ -337,6 +351,7 @@ class Stc12Option(BaseOption):
 
 class Stc15AOption(BaseOption):
     def __init__(self, msr):
+        super().__init__()
         assert len(msr) == 13
         self.msr = bytearray(msr)
 
@@ -435,6 +450,7 @@ class Stc15AOption(BaseOption):
 
 class Stc15Option(BaseOption):
     def __init__(self, msr):
+        super().__init__()
         assert len(msr) >= 4
         self.msr = bytearray(msr)
 

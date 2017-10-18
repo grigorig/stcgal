@@ -27,7 +27,7 @@ from setuptools import setup, find_packages
 setup(
     name = "stcgal",
     version = stcgal.__version__,
-    packages = find_packages(exclude=["doc", "test"]),
+    packages = find_packages(exclude=["doc", "tests"]),
     install_requires = ["pyserial"],
     extras_require = {
         "usb": ["pyusb>=1.0.0"]
@@ -55,6 +55,6 @@ setup(
         "Topic :: Software Development :: Embedded Systems",
         "Topic :: Software Development",
     ],
-    test_suite = "test",
+    test_suite = "tests",
     tests_require = ["PyYAML"],
 )
