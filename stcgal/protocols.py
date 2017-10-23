@@ -372,7 +372,8 @@ class StcAutoProtocol(StcBaseProtocol):
                              ("stc12b", r"STC12(C|LE)(52|56)"),
                              ("stc12", r"(STC|IAP)(10|11|12)\D"),
                              ("stc15a", r"(STC|IAP)15[FL][012]0\d(E|EA|)$"),
-                             ("stc15", r"(STC|IAP|IRC)15\D")]
+                             ("stc15", r"(STC|IAP|IRC)15\D"),
+                             ("stc8", r"(STC|IAP|IRC)8")]
 
         for protocol_name, pattern in protocol_database:
             if re.match(pattern, self.model.name):
@@ -1545,6 +1546,123 @@ class Stc15Protocol(Stc15AProtocol):
 
         print("Target UID: %s" % Utils.hexstr(self.uid))
 
+
+class Stc8Protocol(Stc15Protocol):
+    """Protocol handler for STC8 series"""
+
+    def __init__(self, port, handshake, baud, trim):
+        Stc15Protocol.__init__(self, port, handshake, baud, trim)
+
+    def program_options(self):
+        # XXX: not yet implemented
+        pass
+
+    def initialize_status(self, packet):
+        """Decode status packet and store basic MCU info"""
+
+        self.mcu_clock_hz, = struct.unpack(">I", packet[1:5])
+        # XXX: external clock not supported nor tested
+        self.external_clock = False
+        # all ones means no calibration
+        # new chips are shipped without any calibration
+        # XXX: somehow check if that still holds
+        if self.mcu_clock_hz == 0xffffffff: self.mcu_clock_hz = 0
+
+        # pre-calibrated trim adjust for 24 MHz, range 0x40
+        self.freq_count_24 = packet[4]
+
+        # wakeup timer factory value
+        self.wakeup_freq, = struct.unpack(">H", packet[23:25])
+
+        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
+        bl_minor = packet[22] & 0x0f
+        self.mcu_bsl_version = "%d.%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
+                                               bl_minor, chr(bl_stepping))
+        self.bsl_version = bl_version
+
+    def calibrate(self):
+        """Calibrate selected user frequency frequency and switch to selected baudrate."""
+
+        # handle uncalibrated chips
+        if self.mcu_clock_hz == 0 and self.trim_frequency <= 0:
+            raise StcProtocolException("uncalibrated, please provide a trim value")
+
+        # determine target counter
+        user_speed = self.trim_frequency
+        if user_speed <= 0: user_speed = self.mcu_clock_hz
+        target_user_count = round(user_speed / (self.baud_handshake/2))
+
+        # calibration, round 1
+        # XXX: challenges need work. the ranges and how they related to clock frequency
+        # is different. A clock divider is used for lower frequencies.
+        print("Trimming frequency: ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x00])
+        packet += struct.pack(">B", 12)
+        packet += bytes([11, 0x00, 11*2, 0x00, 11*3, 0x00])
+        packet += bytes([11*4, 0x00, 11*5, 0x00, 11*6, 0x00])
+        packet += bytes([11*7, 0x00, 11*8, 0x00, 11*9, 0x00])
+        packet += bytes([11*10, 0x00, 11*11, 0x00, 0x80, 0x00])
+        self.write_packet(packet)
+        self.pulse(b"\xfe", timeout=1.0)
+        response = self.read_packet()
+        if len(response) < 2 or response[0] != 0x00:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # select ranges and trim values
+        user_trim = self.choose_range(packet, response, target_user_count)
+        if user_trim == None:
+            raise StcProtocolException("frequency trimming unsuccessful")
+
+        # calibration, round 2
+        packet = bytes([0x00])
+        packet += struct.pack(">B", 12)
+        for i in range(user_trim[0] - 2, user_trim[0] + 2):
+            packet += bytes([i & 0xff, 0x00])
+        for i in range(user_trim[0] - 2, user_trim[0] + 2):
+            packet += bytes([i & 0xff, 0x01])
+        for i in range(user_trim[0] - 2, user_trim[0] + 2):
+            packet += bytes([i & 0xff, 0x02])
+        self.write_packet(packet)
+        self.pulse(b"\xfe", timeout=1.0)
+        response = self.read_packet()
+        if len(response) < 2 or response[0] != 0x00:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # select final values
+        user_trim, user_count = self.choose_trim(packet, response, target_user_count)
+        self.trim_value = user_trim
+        self.trim_frequency = round(user_count * (self.baud_handshake / 2))
+        print("%.03f MHz" % (self.trim_frequency / 1E6))
+
+        # switch to programming frequency
+        print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
+        packet = bytes([0x01, 0x00, 0x00])
+        bauds = self.baud_transfer * 4
+        packet += struct.pack(">H", int(65535 - 24E6 / bauds))
+        packet += bytes([user_trim[1], user_trim[0]])
+        iap_wait = self.get_iap_delay(user_speed)
+        packet += bytes([iap_wait])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if len(response) < 1 or response[0] != 0x01:
+            raise StcProtocolException("incorrect magic in handshake packet")
+        self.ser.baudrate = self.baud_transfer
+
+    def initialize_options(self, status_packet):
+        """Initialize options"""
+        # XXX: not implemented yet
+        pass
+
+    def disconnect(self):
+        """Disconnect from MCU"""
+
+        # reset mcu
+        packet = bytes([0xff])
+        self.write_packet(packet)
+        self.ser.close()
+        print("Disconnected!")
 
 class StcUsb15Protocol(Stc15Protocol):
     """USB should use large blocks"""
