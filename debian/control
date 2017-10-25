@@ -2,14 +2,14 @@ Source: stcgal
 Section: electronics
 Priority: optional
 Maintainer: Andrew Andrianov <andrew@ncrmnt.org>
-Build-Depends: debhelper (>= 9), python3, python3-setuptools, dh-python
+Build-Depends: debhelper (>= 9), python3, python3-setuptools, dh-python, python3-serial, python3-tqdm, python3-yaml
 Standards-Version: 3.9.5
 Homepage: https://github.com/grigorig/stcgal
 X-Python3-Version: >= 3.2
 
 Package: stcgal
 Architecture: all
-Depends: ${misc:Depends}, python3, python3-serial
+Depends: ${misc:Depends}, python3, python3-serial, python3-tqdm
 Recommends: python3-usb (>= 1.0.0~b2)
 Description: STC MCU ISP flash tool
  stcgal is a command line flash programming tool for STC MCU Ltd.
