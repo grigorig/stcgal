@@ -1599,10 +1599,10 @@ class Stc8Protocol(Stc15Protocol):
         sys.stdout.flush()
         packet = bytes([0x00])
         packet += struct.pack(">B", 12)
-        packet += bytes([11, 0x00, 11*2, 0x00, 11*3, 0x00])
-        packet += bytes([11*4, 0x00, 11*5, 0x00, 11*6, 0x00])
-        packet += bytes([11*7, 0x00, 11*8, 0x00, 11*9, 0x00])
-        packet += bytes([11*10, 0x00, 11*11, 0x00, 0x80, 0x00])
+        packet += bytes([0x00, 0x00, 23*1, 0x00, 23*2, 0x00])
+        packet += bytes([23*3, 0x00, 23*4, 0x00, 23*5, 0x00])
+        packet += bytes([23*6, 0x00, 23*7, 0x00, 23*8, 0x00])
+        packet += bytes([23*9, 0x00, 23*10, 0x00, 255, 0x00])
         self.write_packet(packet)
         self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
@@ -1610,8 +1610,11 @@ class Stc8Protocol(Stc15Protocol):
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # select ranges and trim values
-        user_trim = self.choose_range(packet, response, target_user_count)
-        if user_trim == None:
+        for divider in (1, 2, 4):
+            user_trim = self.choose_range(packet, response, target_user_count * divider)
+            if user_trim is not None:
+                break
+        if user_trim is None:
             raise StcProtocolException("frequency trimming unsuccessful")
 
         # calibration, round 2
