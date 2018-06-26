@@ -24,6 +24,9 @@
 import stcgal
 from setuptools import setup, find_packages
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name = "stcgal",
     version = stcgal.__version__,
@@ -38,7 +41,8 @@ setup(
         ],
     },
     description = "STC MCU ISP flash tool",
-    long_description = "Flash programming tool for STCmicro MCS-51/8051 compatible microcontrollers",
+    long_description = long_description,
+    long_description_content_type = "text/markdown",
     keywords = "stc mcu microcontroller 8051 mcs-51",
     url = "https://github.com/grigorig/stcgal",
     author = "Grigori Goronzy",
