@@ -23,8 +23,18 @@
 import sys
 import argparse
 import stcgal
+import serial
 from stcgal.utils import BaudType
-from stcgal.protocols import *
+from stcgal.protocols import Stc89Protocol
+from stcgal.protocols import Stc12AProtocol
+from stcgal.protocols import Stc12BProtocol
+from stcgal.protocols import Stc12Protocol
+from stcgal.protocols import Stc15Protocol
+from stcgal.protocols import Stc15AProtocol
+from stcgal.protocols import StcUsb15Protocol
+from stcgal.protocols import StcAutoProtocol
+from stcgal.protocols import StcProtocolException
+from stcgal.protocols import StcFramingException
 from stcgal.ihex import IHex
 
 class StcGal:

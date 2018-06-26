@@ -27,17 +27,21 @@ import time
 import struct
 import re
 import errno
-import argparse
-import collections
 from stcgal.models import MCUModelDatabase
 from stcgal.utils import Utils
-from stcgal.options import Stc89Option, Stc12Option, Stc12AOption, Stc15Option, Stc15AOption
-from abc import ABC, abstractmethod
+from stcgal.options import Stc89Option
+from stcgal.options import Stc12Option
+from stcgal.options import Stc12AOption
+from stcgal.options import Stc15Option
+from stcgal.options import Stc15AOption
+from abc import ABC
+from abc import abstractmethod
 import functools
 import tqdm
 
 try:
-    import usb.core, usb.util
+    import usb.core
+    import usb.util
     _usb_available = True
 except ImportError:
     _usb_available = False
