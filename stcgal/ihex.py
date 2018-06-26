@@ -87,18 +87,17 @@ class IHex:
 
             return bytes(result)
 
-        else:
-            result = bytearray()
+        result = bytearray()
 
-            for addr, data in self.areas.items():
-                if addr >= start and addr < end:
-                    data = data[:end - addr]
-                    if len(result) < (addr - start):
-                        result[len(result):addr - start] = bytes(
-                            addr - start - len(result))
-                    result[addr - start:addr - start + len(data)] = data
+        for addr, data in self.areas.items():
+            if addr >= start and addr < end:
+                data = data[:end - addr]
+                if len(result) < (addr - start):
+                    result[len(result):addr - start] = bytes(
+                        addr - start - len(result))
+                result[addr - start:addr - start + len(data)] = data
 
-            return bytes(result)
+        return bytes(result)
 
     def set_start(self, start=None):
         self.start = start
@@ -137,7 +136,7 @@ class IHex:
 
         try:
             line = codecs.decode(rawline[1:], "hex_codec")
-        except:
+        except ValueError:
             raise ValueError("Invalid hex data")
 
         length, addr, line_type = struct.unpack(">BHB", line[:4])

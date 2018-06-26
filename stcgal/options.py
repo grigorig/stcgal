@@ -473,7 +473,7 @@ class Stc15Option(BaseOption):
         )
 
         if len(msr) > 4:
-            self.options += ("cpu_core_voltage", self.get_core_voltage, self.set_core_voltage),
+            self.options += (("cpu_core_voltage", self.get_core_voltage, self.set_core_voltage),)
 
     def get_reset_pin_enabled(self):
         return not bool(self.msr[2] & 16)
@@ -615,7 +615,7 @@ class Stc15Option(BaseOption):
         if self.msr[4] == 0xea: return "low"
         elif self.msr[4] == 0xf7: return "mid"
         elif self.msr[4] == 0xfd: return "high"
-        else: return "unknown"
+        return "unknown"
 
     def set_core_voltage(self, val):
         volt_vals = {"low": 0xea, "mid": 0xf7, "high": 0xfd}

@@ -35,8 +35,7 @@ class Utils:
             return val
         elif isinstance(val, int):
             return bool(val)
-        else:
-            return True if val[0].lower() == "t" or val[0] == "1" else False
+        return True if val[0].lower() == "t" or val[0] == "1" else False
 
     @classmethod
     def to_int(cls, val):
@@ -44,7 +43,7 @@ class Utils:
 
         try:
             return int(val, 0)
-        except:
+        except (TypeError, ValueError):
             raise ValueError("invalid integer")
 
     @classmethod

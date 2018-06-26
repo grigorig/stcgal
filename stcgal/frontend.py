@@ -179,9 +179,8 @@ class StcGal:
             if self.opts.code_image:
                 self.program_mcu()
                 return 0
-            else:
-                self.protocol.disconnect()
-                return 0
+            self.protocol.disconnect()
+            return 0
         except NameError as ex:
             sys.stdout.flush()
             print("Option error: %s" % ex, file=sys.stderr)
@@ -210,12 +209,14 @@ class StcGal:
 def cli():
     # check arguments
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-                                     description="stcgal %s - an STC MCU ISP flash tool\n(C) 2014-2017 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
+                                     description="stcgal %s - an STC MCU ISP flash tool\n" +
+                                                 "(C) 2014-2017 Grigori Goronzy\nhttps://github.com/grigorig/stcgal" %stcgal.__version__)
     parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
     parser.add_argument("-r", "--resetcmd",  help="Use this shell command for board power-cycling (instead of DTR assertion)", action="store")
-    parser.add_argument("-P", "--protocol", help="protocol version (default: auto)", choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "usb15", "auto"], default="auto")
+    parser.add_argument("-P", "--protocol", help="protocol version (default: auto)",
+                        choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "usb15", "auto"], default="auto")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)

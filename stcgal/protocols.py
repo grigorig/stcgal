@@ -60,19 +60,20 @@ class StcProtocolException(Exception):
 class StcBaseProtocol(ABC):
     """Basic functionality for STC BSL protocols"""
 
-    """magic word that starts a packet"""
     PACKET_START = bytes([0x46, 0xb9])
+    """magic word that starts a packet"""
 
-    """magic byte that ends a packet"""
     PACKET_END = bytes([0x16])
+    """magic byte that ends a packet"""
 
-    """magic byte for packets received from MCU"""
     PACKET_MCU = bytes([0x68])
+    """magic byte for packets received from MCU"""
 
-    """magic byte for packets sent by host"""
     PACKET_HOST = bytes([0x6a])
+    """magic byte for packets sent by host"""
 
     PARITY = serial.PARITY_NONE
+    """parity configuration for serial communication"""
 
     def __init__(self, port, baud_handshake, baud_transfer):
         self.port = port
@@ -88,22 +89,22 @@ class StcBaseProtocol(ABC):
         self.debug = False
         self.status_packet = None
         self.protocol_name = None
-        self.bar = None
+        self.progress = None
         self.progress_cb = self.progress_bar_cb
 
     def progress_text_cb(self, current, written, maximum):
         print(current, written, maximum)
 
     def progress_bar_cb(self, current, written, maximum):
-        if not self.bar:
-            self.bar = tqdm.tqdm(
+        if not self.progress:
+            self.progress = tqdm.tqdm(
                 total = maximum,
                 unit = " Bytes",
                 desc = "Writing flash"
                 )
-        self.bar.update(written)
+        self.progress.update(written)
         if current == maximum:
-            self.bar.close()
+            self.progress.close()
 
     def dump_packet(self, data, receive=True):
         if self.debug:
@@ -393,11 +394,11 @@ class StcAutoProtocol(StcBaseProtocol):
 class Stc89Protocol(StcBaseProtocol):
     """Protocol handler for STC 89/90 series"""
 
-    """These don't use any parity"""
     PARITY = serial.PARITY_NONE
+    """Parity configuration - these don't use any parity"""
 
-    """block size for programming flash"""
     PROGRAM_BLOCKSIZE = 128
+    """block size for programming flash"""
 
     def __init__(self, port, baud_handshake, baud_transfer):
         StcBaseProtocol.__init__(self, port, baud_handshake, baud_transfer)
@@ -416,7 +417,7 @@ class Stc89Protocol(StcBaseProtocol):
         payload = StcBaseProtocol.extract_payload(self, packet)
         return payload[:-1]
 
-    def write_packet(self, data):
+    def write_packet(self, packet_data):
         """Send packet to MCU.
 
         Constructs a packet with supplied payload and sends it to the MCU.
@@ -428,8 +429,8 @@ class Stc89Protocol(StcBaseProtocol):
         packet += self.PACKET_HOST
 
         # packet length and payload
-        packet += struct.pack(">H", len(data) + 5)
-        packet += data
+        packet += struct.pack(">H", len(packet_data) + 5)
+        packet += packet_data
 
         # checksum and end code
         packet += bytes([sum(packet[2:]) & 0xff])
@@ -485,19 +486,19 @@ class Stc89Protocol(StcBaseProtocol):
 
         return brt, brt_csum, iap_wait, delay
 
-    def initialize_status(self, packet):
+    def initialize_status(self, status_packet):
         """Decode status packet and store basic MCU info"""
 
-        self.cpu_6t = not bool(packet[19] & 1)
+        self.cpu_6t = not bool(status_packet[19] & 1)
 
         cpu_t = 6.0 if self.cpu_6t else 12.0
         freq_counter = 0
         for i in range(8):
-            freq_counter += struct.unpack(">H", packet[1+2*i:3+2*i])[0]
+            freq_counter += struct.unpack(">H", status_packet[1+2*i:3+2*i])[0]
         freq_counter /= 8.0
         self.mcu_clock_hz = (self.baud_handshake * freq_counter * cpu_t) / 7.0
 
-        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
+        bl_version, bl_stepping = struct.unpack("BB", status_packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                             chr(bl_stepping))
 
@@ -542,7 +543,7 @@ class Stc89Protocol(StcBaseProtocol):
         sys.stdout.flush()
         packet = bytes([0x80, 0x00, 0x00, 0x36, 0x01])
         packet += struct.pack(">H", self.mcu_magic)
-        for i in range(4):
+        for _ in range(4):
             self.write_packet(packet)
             response = self.read_packet()
             if response[0] != 0x80:
@@ -550,7 +551,7 @@ class Stc89Protocol(StcBaseProtocol):
 
         print("done")
 
-    def erase_flash(self, erase_size, flash_size):
+    def erase_flash(self, erase_size, _):
         """Erase the MCU's flash memory.
 
         Erase the flash memory with a block-erase command.
@@ -642,16 +643,16 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
     def __init__(self, port, baud_handshake, baud_transfer):
         Stc89Protocol.__init__(self, port, baud_handshake, baud_transfer)
 
-    def initialize_status(self, packet):
+    def initialize_status(self, status_packet):
         """Decode status packet and store basic MCU info"""
 
         freq_counter = 0
         for i in range(8):
-            freq_counter += struct.unpack(">H", packet[1+2*i:3+2*i])[0]
+            freq_counter += struct.unpack(">H", status_packet[1+2*i:3+2*i])[0]
         freq_counter /= 8.0
         self.mcu_clock_hz = (self.baud_handshake * freq_counter * 12.0) / 7.0
 
-        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
+        bl_version, bl_stepping = struct.unpack("BB", status_packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                             chr(bl_stepping))
 
@@ -730,7 +731,7 @@ class Stc12AProtocol(Stc12AOptionsMixIn, Stc89Protocol):
         sys.stdout.flush()
         packet = bytes([0x80, 0x00, 0x00, 0x36, 0x01])
         packet += struct.pack(">H", self.mcu_magic)
-        for i in range(4):
+        for _ in range(4):
             self.write_packet(packet)
             response = self.read_packet()
             if response[0] != 0x80:
@@ -787,14 +788,14 @@ class Stc12OptionsMixIn:
 class Stc12BaseProtocol(StcBaseProtocol):
     """Base class for STC 10/11/12 series protocol handlers"""
 
-    """block size for programming flash"""
     PROGRAM_BLOCKSIZE = 128
+    """block size for programming flash"""
 
-    """countdown value for flash erase"""
     ERASE_COUNTDOWN = 0x0d
+    """countdown value for flash erase"""
 
-    """Parity for error correction was introduced with STC12"""
     PARITY = serial.PARITY_EVEN
+    """Parity for error correction was introduced with STC12"""
 
     def __init__(self, port, baud_handshake, baud_transfer):
         StcBaseProtocol.__init__(self, port, baud_handshake, baud_transfer)
@@ -811,7 +812,7 @@ class Stc12BaseProtocol(StcBaseProtocol):
         payload = StcBaseProtocol.extract_payload(self, packet)
         return payload[:-2]
 
-    def write_packet(self, data):
+    def write_packet(self, packet_data):
         """Send packet to MCU.
 
         Constructs a packet with supplied payload and sends it to the MCU.
@@ -823,8 +824,8 @@ class Stc12BaseProtocol(StcBaseProtocol):
         packet += self.PACKET_HOST
 
         # packet length and payload
-        packet += struct.pack(">H", len(data) + 6)
-        packet += data
+        packet += struct.pack(">H", len(packet_data) + 6)
+        packet += packet_data
 
         # checksum and end code
         packet += struct.pack(">H", sum(packet[2:]) & 0xffff)
@@ -834,16 +835,16 @@ class Stc12BaseProtocol(StcBaseProtocol):
         self.ser.write(packet)
         self.ser.flush()
 
-    def initialize_status(self, packet):
+    def initialize_status(self, status_packet):
         """Decode status packet and store basic MCU info"""
 
         freq_counter = 0
         for i in range(8):
-            freq_counter += struct.unpack(">H", packet[1+2*i:3+2*i])[0]
+            freq_counter += struct.unpack(">H", status_packet[1+2*i:3+2*i])[0]
         freq_counter /= 8.0
         self.mcu_clock_hz = (self.baud_handshake * freq_counter * 12.0) / 7.0
 
-        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
+        bl_version, bl_stepping = struct.unpack("BB", status_packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                             chr(bl_stepping))
 
@@ -1033,20 +1034,20 @@ class Stc15AProtocol(Stc12Protocol):
             raise StcProtocolException("incorrect magic in status packet")
         return status_packet
 
-    def initialize_status(self, packet):
+    def initialize_status(self, status_packet):
         """Decode status packet and store basic MCU info"""
 
         freq_counter = 0
         for i in range(4):
-            freq_counter += struct.unpack(">H", packet[1+2*i:3+2*i])[0]
+            freq_counter += struct.unpack(">H", status_packet[1+2*i:3+2*i])[0]
         freq_counter /= 4.0
         self.mcu_clock_hz = (self.baud_handshake * freq_counter * 12.0) / 7.0
 
-        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
+        bl_version, bl_stepping = struct.unpack("BB", status_packet[17:19])
         self.mcu_bsl_version = "%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                             chr(bl_stepping))
 
-        self.trim_data = packet[51:58]
+        self.trim_data = status_packet[51:58]
         self.freq_counter = freq_counter
 
     def get_trim_sequence(self, frequency):
@@ -1244,30 +1245,30 @@ class Stc15Protocol(Stc15AProtocol):
         self.options = Stc15Option(status_packet[5:8] + status_packet[12:13] + status_packet[37:38])
         self.options.print()
 
-    def initialize_status(self, packet):
+    def initialize_status(self, status_packet):
         """Decode status packet and store basic MCU info"""
 
         # check bit that control internal vs. external clock source
         # get frequency either stored from calibration or from
         # frequency counter
-        self.external_clock = (packet[7] & 0x01) == 0
+        self.external_clock = (status_packet[7] & 0x01) == 0
         if self.external_clock:
-            count, = struct.unpack(">H", packet[13:15])
+            count, = struct.unpack(">H", status_packet[13:15])
             self.mcu_clock_hz = self.baud_handshake * count
         else:
-            self.mcu_clock_hz, = struct.unpack(">I", packet[8:12])
+            self.mcu_clock_hz, = struct.unpack(">I", status_packet[8:12])
             # all ones means no calibration
             # new chips are shipped without any calibration
             if self.mcu_clock_hz == 0xffffffff: self.mcu_clock_hz = 0
 
         # pre-calibrated trim adjust for 24 MHz, range 0x40
-        self.freq_count_24 = packet[4]
+        self.freq_count_24 = status_packet[4]
 
         # wakeup timer factory value
-        self.wakeup_freq, = struct.unpack(">H", packet[1:3])
+        self.wakeup_freq, = struct.unpack(">H", status_packet[1:3])
 
-        bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
-        bl_minor = packet[22] & 0x0f
+        bl_version, bl_stepping = struct.unpack("BB", status_packet[17:19])
+        bl_minor = status_packet[22] & 0x0f
         self.mcu_bsl_version = "%d.%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                                bl_minor, chr(bl_stepping))
         self.bsl_version = bl_version
@@ -1359,7 +1360,7 @@ class Stc15Protocol(Stc15AProtocol):
         # select ranges and trim values
         user_trim = self.choose_range(packet, response, target_user_count)
         prog_trim = self.choose_range(packet, response, target_prog_count)
-        if user_trim == None or prog_trim == None:
+        if user_trim is None or prog_trim is None:
             raise StcProtocolException("frequency trimming unsuccessful")
 
         # calibration, round 2
@@ -1377,7 +1378,7 @@ class Stc15Protocol(Stc15AProtocol):
 
         # select final values
         user_trim, user_count = self.choose_trim(packet, response, target_user_count)
-        prog_trim, prog_count = self.choose_trim(packet, response, target_prog_count)
+        prog_trim, _ = self.choose_trim(packet, response, target_prog_count)
         self.trim_value = user_trim
         self.trim_frequency = round(user_count * (self.baud_handshake / 2))
         print("%.03f MHz" % (self.trim_frequency / 1E6))
