@@ -1552,6 +1552,7 @@ class Stc8Protocol(Stc15Protocol):
 
     def __init__(self, port, handshake, baud, trim):
         Stc15Protocol.__init__(self, port, handshake, baud, trim)
+        self.trim_divider = None
 
     def program_options(self):
         # XXX: not yet implemented
@@ -1610,9 +1611,10 @@ class Stc8Protocol(Stc15Protocol):
             raise StcProtocolException("incorrect magic in handshake packet")
 
         # select ranges and trim values
-        for divider in (1, 2, 4):
+        for divider in (1, 2, 3, 4, 5):
             user_trim = self.choose_range(packet, response, target_user_count * divider)
             if user_trim is not None:
+                self.trim_divider = divider
                 break
         if user_trim is None:
             raise StcProtocolException("frequency trimming unsuccessful")
@@ -1620,12 +1622,14 @@ class Stc8Protocol(Stc15Protocol):
         # calibration, round 2
         packet = bytes([0x00])
         packet += struct.pack(">B", 12)
-        for i in range(user_trim[0] - 2, user_trim[0] + 2):
+        for i in range(user_trim[0] - 1, user_trim[0] + 2):
             packet += bytes([i & 0xff, 0x00])
-        for i in range(user_trim[0] - 2, user_trim[0] + 2):
+        for i in range(user_trim[0] - 1, user_trim[0] + 2):
             packet += bytes([i & 0xff, 0x01])
-        for i in range(user_trim[0] - 2, user_trim[0] + 2):
+        for i in range(user_trim[0] - 1, user_trim[0] + 2):
             packet += bytes([i & 0xff, 0x02])
+        for i in range(user_trim[0] - 1, user_trim[0] + 2):
+            packet += bytes([i & 0xff, 0x03])
         self.write_packet(packet)
         self.pulse(b"\xfe", timeout=1.0)
         response = self.read_packet()
@@ -1635,7 +1639,7 @@ class Stc8Protocol(Stc15Protocol):
         # select final values
         user_trim, user_count = self.choose_trim(packet, response, target_user_count)
         self.trim_value = user_trim
-        self.trim_frequency = round(user_count * (self.baud_handshake / 2))
+        self.trim_frequency = round(user_count * (self.baud_handshake / 2) / self.trim_divider)
         print("%.03f MHz" % (self.trim_frequency / 1E6))
 
         # switch to programming frequency
@@ -1645,7 +1649,7 @@ class Stc8Protocol(Stc15Protocol):
         bauds = self.baud_transfer * 4
         packet += struct.pack(">H", int(65535 - 24E6 / bauds))
         packet += bytes([user_trim[1], user_trim[0]])
-        iap_wait = self.get_iap_delay(user_speed)
+        iap_wait = self.get_iap_delay(24E6)
         packet += bytes([iap_wait])
         self.write_packet(packet)
         response = self.read_packet()
