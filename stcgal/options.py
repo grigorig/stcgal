@@ -622,3 +622,170 @@ class Stc15Option(BaseOption):
         if val not in volt_vals.keys():
             raise ValueError("must be one of %s" % list(volt_vals.keys()))
         self.msr[4] = volt_vals[val]
+
+class Stc8Option(BaseOption):
+    def __init__(self, msr):
+        super().__init__()
+        assert len(msr) >= 5
+        self.msr = bytearray(msr)
+
+        self.options = (
+            ("reset_pin_enabled", self.get_reset_pin_enabled, self.set_reset_pin_enabled),
+            ("clock_gain", self.get_clock_gain, self.set_clock_gain),
+            ("watchdog_por_enabled", self.get_watchdog, self.set_watchdog),
+            ("watchdog_stop_idle", self.get_watchdog_idle, self.set_watchdog_idle),
+            ("watchdog_prescale", self.get_watchdog_prescale, self.set_watchdog_prescale),
+            ("low_voltage_reset", self.get_lvrs, self.set_lvrs),
+            ("low_voltage_threshold", self.get_low_voltage, self.set_low_voltage),
+            ("eeprom_erase_enabled", self.get_ee_erase, self.set_ee_erase),
+            ("bsl_pindetect_enabled", self.get_pindetect, self.set_pindetect),
+            ("por_reset_delay", self.get_por_delay, self.set_por_delay),
+            ("rstout_por_state", self.get_p20_state, self.set_p20_state),
+            ("uart1_remap", self.get_uart1_remap, self.set_uart1_remap),
+            ("uart2_passthrough", self.get_uart_passthrough, self.set_uart_passthrough),
+            ("uart2_pin_mode", self.get_uart_pin_mode, self.set_uart_pin_mode),
+            ("epwm_open_drain", self.get_epwm_pp, self.set_epwm_pp),
+            ("program_eeprom_split", self.get_flash_split, self.set_flash_split),
+        )
+
+    def get_reset_pin_enabled(self):
+        return not bool(self.msr[2] & 16)
+
+    def set_reset_pin_enabled(self, val):
+        val = Utils.to_bool(val)
+        self.msr[2] &= 0xef
+        self.msr[2] |= 0x10 if not bool(val) else 0x00
+
+    def get_clock_gain(self):
+        gain = bool(self.msr[1] & 0x02)
+        return "high" if gain else "low"
+
+    def set_clock_gain(self, val):
+        gains = {"low": 0, "high": 1}
+        if val not in gains.keys():
+            raise ValueError("must be one of %s" % list(gains.keys()))
+        self.msr[1] &= 0xfd
+        self.msr[1] |= gains[val] << 1
+
+    def get_watchdog(self):
+        return not bool(self.msr[3] & 32)
+
+    def set_watchdog(self, val):
+        val = Utils.to_bool(val)
+        self.msr[3] &= 0xdf
+        self.msr[3] |= 0x20 if not val else 0x00
+
+    def get_watchdog_idle(self):
+        return not bool(self.msr[3] & 8)
+
+    def set_watchdog_idle(self, val):
+        val = Utils.to_bool(val)
+        self.msr[3] &= 0xf7
+        self.msr[3] |= 0x08 if not val else 0x00
+
+    def get_watchdog_prescale(self):
+        return 2 ** (((self.msr[3]) & 0x07) + 1)
+
+    def set_watchdog_prescale(self, val):
+        val = Utils.to_int(val)
+        wd_vals = {2: 0, 4: 1, 8: 2, 16: 3, 32: 4, 64: 5, 128: 6, 256: 7}
+        if val not in wd_vals.keys():
+            raise ValueError("must be one of %s" % list(wd_vals.keys()))
+        self.msr[3] &= 0xf8
+        self.msr[3] |= wd_vals[val]
+
+    def get_lvrs(self):
+        return not bool(self.msr[2] & 64)
+
+    def set_lvrs(self, val):
+        val = Utils.to_bool(val)
+        self.msr[2] &= 0xbf
+        self.msr[2] |= 0x40 if not val else 0x00
+
+    def get_low_voltage(self):
+        return 3 - self.msr[2] & 0x03
+
+    def set_low_voltage(self, val):
+        val = Utils.to_int(val)
+        if val not in range(0, 4):
+            raise ValueError("must be one of %s" % list(range(0, 4)))
+        self.msr[2] &= 0xfc
+        self.msr[2] |= 3 - val
+
+    def get_ee_erase(self):
+        return bool(self.msr[0] & 2)
+
+    def set_ee_erase(self, val):
+        val = Utils.to_bool(val)
+        self.msr[0] &= 0xfd
+        self.msr[0] |= 0x02 if val else 0x00
+
+    def get_pindetect(self):
+        return not bool(self.msr[0] & 1)
+
+    def set_pindetect(self, val):
+        val = Utils.to_bool(val)
+        self.msr[0] &= 0xfe
+        self.msr[0] |= 0x01 if not val else 0x00
+
+    def get_por_delay(self):
+        delay = bool(self.msr[1] & 128)
+        return "long" if delay else "short"
+
+    def set_por_delay(self, val):
+        delays = {"short": 0, "long": 1}
+        if val not in delays.keys():
+            raise ValueError("must be one of %s" % list(delays.keys()))
+        self.msr[1] &= 0x7f
+        self.msr[1] |= delays[val] << 7
+
+    def get_p20_state(self):
+        return "high" if self.msr[1] & 0x08 else "low"
+
+    def set_p20_state(self, val):
+        val = Utils.to_bool(val)
+        self.msr[1] &= 0xf7
+        self.msr[1] |= 0x08 if val else 0x00
+
+    def get_uart_passthrough(self):
+        return bool(self.msr[1] & 0x10)
+
+    def set_uart_passthrough(self, val):
+        val = Utils.to_bool(val)
+        self.msr[1] &= 0xef
+        self.msr[1] |= 0x10 if val else 0x00
+
+    def get_uart_pin_mode(self):
+        return "push-pull" if bool(self.msr[1] & 0x20) else "normal"
+
+    def set_uart_pin_mode(self, val):
+        modes = {"normal": 0, "push-pull": 1}
+        if val not in modes.keys():
+            raise ValueError("must be one of %s" % list(modes.keys()))
+        self.msr[1] &= 0xdf
+        self.msr[1] |= 0x20 if modes[val] else 0x00
+
+    def get_epwm_pp(self):
+        return bool(self.msr[1] & 0x04)
+
+    def set_epwm_pp(self, val):
+        val = Utils.to_bool(val)
+        self.msr[1] &= 0xfb
+        self.msr[1] |= 0x04 if val else 0x00
+
+    def get_uart1_remap(self):
+        return bool(self.msr[1] & 0x40)
+
+    def set_uart1_remap(self, val):
+        val = Utils.to_bool(val)
+        self.msr[1] &= 0xbf
+        self.msr[1] |= 0x40 if val else 0x00
+
+    def get_flash_split(self):
+        return self.msr[4] * 256
+
+    def set_flash_split(self, val):
+        num_val = Utils.to_int(val)
+        if num_val < 512 or num_val > 65024 or (num_val % 512) != 0:
+            raise ValueError("must be between 512 and 65024 bytes and a multiple of 512 bytes")
+        self.msr[4] = num_val // 256

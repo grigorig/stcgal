@@ -31,6 +31,10 @@ Clock set to 20 MHz by STC-ISP (encoding is different compared to STC15):
                                       ^^ clkdiv
                     ^^^^^^^^^^^ clk
 
+MCS bytes
+
+46 B9 68 00 30   50 01 31 2E 90 38 01 01 FF FD 8B BF FF 27 35 F7 FE 73 55 00 F6 28 09 85 E3 5F 80 07 20 20 20 01 00 00 FE 05 3A 17 05 25 91 FF   10 54 16
+                                            ^^^^^^^^          ^^^^^
 
 Disconnect
 ----------

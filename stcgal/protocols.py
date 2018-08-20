@@ -34,6 +34,7 @@ from stcgal.options import Stc12Option
 from stcgal.options import Stc12AOption
 from stcgal.options import Stc15Option
 from stcgal.options import Stc15AOption
+from stcgal.options import Stc8Option
 from abc import ABC
 from abc import abstractmethod
 import functools
@@ -1554,9 +1555,14 @@ class Stc8Protocol(Stc15Protocol):
         Stc15Protocol.__init__(self, port, handshake, baud, trim)
         self.trim_divider = None
 
-    def program_options(self):
-        # XXX: not yet implemented
-        pass
+    def initialize_options(self, status_packet):
+        """Initialize options"""
+        if len(status_packet) < 17:
+            raise StcProtocolException("invalid options in status packet")
+
+        # create option state
+        self.options = Stc8Option(status_packet[9:12] + status_packet[15:17])
+        self.options.print()
 
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
@@ -1657,10 +1663,20 @@ class Stc8Protocol(Stc15Protocol):
             raise StcProtocolException("incorrect magic in handshake packet")
         self.ser.baudrate = self.baud_transfer
 
-    def initialize_options(self, status_packet):
-        """Initialize options"""
-        # XXX: not implemented yet
-        pass
+    def build_options(self):
+        """Build a packet of option data from the current configuration."""
+
+        msr = self.options.get_msr()
+        packet = 40 * bytearray([0xff])
+        packet[3] = 0
+        packet[6] = 0
+        packet[22] = 0
+        packet[24:28] = struct.pack(">I", self.trim_frequency)
+        packet[28:30] = self.trim_value
+        packet[30] = self.trim_divider
+        packet[32] = msr[0]
+        packet[36:40] = msr[1:5]
+        return bytes(packet)
 
     def disconnect(self):
         """Disconnect from MCU"""
