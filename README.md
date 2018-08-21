@@ -23,7 +23,7 @@ suitable for automation.
 Supported MCU models
 --------------------
 
-stcgal should fully support STC 89/90/10/11/12/15 series MCUs.
+stcgal should fully support STC 89/90/10/11/12/15 series MCUs. Support for STC8 series MCUs is work in progress.
 
 So far, stcgal was tested with the following MCU models:
 
@@ -47,6 +47,7 @@ So far, stcgal was tested with the following MCU models:
 * STC15L2K16S2 (BSL version: 7.2.4S)
 * STC15W408AS (BSL version: 7.2.4T)
 * STC15W4K56S4 (BSL version: 7.3.4T, UART and USB mode)
+* STC8A8K64S4A12 (BSL version: 7.3.9U)
 
 Compatibility reports, both negative and positive, are welcome.
 
@@ -59,8 +60,8 @@ Features
 * Program flash memory
 * Program IAP/EEPROM
 * Set device options
-* Read unique device ID (STC 10/11/12/15)
-* Trim RC oscillator frequency (STC 15)
+* Read unique device ID (STC 10/11/12/15/8)
+* Trim RC oscillator frequency (STC 15/8)
 * Automatic power-cycling with DTR toggle or a custom shell command
 * Automatic UART protocol detection
 
@@ -126,6 +127,7 @@ and MCU series is as follows:
 * ```stc12``` Most STC10/11/12 series
 * ```stc15a``` STC15x104E and STC15x204E(A) series
 * ```stc15``` Most STC15 series
+* ```stc8``` STC8 series
 * ```usb15``` USB support on STC15W4 series
 * ```auto``` Automatic detection of UART based protocols (default)
 
@@ -257,17 +259,20 @@ Option key                    | Possible values   | Protocols/Models    | Descri
 ```por_reset_delay```         | short/long        | STC12+              | Power-on reset (POR) delay
 ```low_voltage_threshold```   | 0...7             | STC15A+             | Low-voltage detection threshold. Model specific.
 ```eeprom_lvd_inhibit```      | true/false        | STC15A+             | Ignore EEPROM writes in low-voltage situations
-```rstout_por_state```        | low/high          | STC15+              | RSTOUT pin state after power-on reset
+```rstout_por_state```        | low/high          | STC15+              | RSTOUT/RSTSV pin state after power-on reset
+```uart1_remap```             | true/false        | STC8                | Remap UART1 pins (P3.0/P3.1) to UART2 pins (P3.6/P3.7)
 ```uart2_passthrough```       | true/false        | STC15+              | Pass-through UART1 to UART2 pins (for single-wire UART mode)
 ```uart2_pin_mode```          | push-pull/normal  | STC15+              | Output mode of UART2 TX pin
 ```cpu_core_voltage```        | low/mid/high      | STC15W+             | CPU core voltage (low: ~2.7V, mid: ~3.3V, high: ~3.6V)
+```epwm_open_drain```         | true/false        | STC8                | Use open-drain pin mode for EPWM pins after power-on reset
+```program_eeprom_split```    | 512 - 65024       | STC8A8 w/ 64 KB     | Select split between code flash and EEPROM flash (in 512 byte blocks)
 
 ### Frequency trimming
 
 If the internal RC oscillator is used (```clock_source=internal```),
 stcgal can execute a trim procedure to adjust it to a given value. This
-is only supported by STC15 series. The trim values are stored with
-device options. Use the ```-t``` flag to request trimming to a certain
+is only supported by STC15 series and newer. The trim values are stored
+with device options. Use the ```-t``` flag to request trimming to a certain
 value. Generally, frequencies between 4 and 35 MHz can be achieved. If
 trimming fails, stcgal will abort.
 

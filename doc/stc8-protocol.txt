@@ -1,0 +1,137 @@
+Overview of changes
+-------------------
+
+The following changes have been observed compared to STC15:
+
+- Many differences in the status packet
+- At least some differences in MCS
+- Different challenge
+  - no separate program speed
+  - clock division was introduced; calibration always in the ~20-30 MHz range, lower clocks
+    use division
+  - the meaning of the calibration ranges and trim has changed
+
+The good:
+
+- Erase, Program, etc. operations are apparently unchanged. :)
+
+
+Status packet
+-------------
+
+46 B9 68 00 30   50 00 54 62 58 5D 00 04 FF FD 8B BF FF 27 4A F7 FE 73 55 00 F6 28 09 85 E3 5F 80 07 20 20 20 01 00 00 FE 05 3A 17 05 25 91 FF   10 AE 16
+                                                                                      ^^^^^ wakeup clock
+
+Clock set to 20 MHz by STC-ISP (encoding is different compared to STC15):
+
+46 B9 68 00 30   50 01 31 2E 90 38 01 01 FF FD 8B BF FF 27 35 F7 FE 73 55 00 F6 28 09 85 E3 5F 80 07 20 20 20 01 00 00 FE 05 3A 17 05 25 91 FF   10 54 16
+46 B9 68 00 30   50 01 31 2E 90 38 01 01 FF FD 8B BF FF 27 3B F7 FE 73 55 00 F6 28 09 85 E3 5F 80 07 20 20 20 01 00 00 FE 05 3A 17 05 25 91 FF   10 5A 16
+                                                        ^^^^^ some 24 MHz reference or other clk measurement?
+                                ^^^^^ trim/adjust?
+                                      ^^ clkdiv
+                    ^^^^^^^^^^^ clk
+
+MCS bytes
+
+46 B9 68 00 30   50 01 31 2E 90 38 01 01 FF FD 8B BF FF 27 35 F7 FE 73 55 00 F6 28 09 85 E3 5F 80 07 20 20 20 01 00 00 FE 05 3A 17 05 25 91 FF   10 54 16
+                                            ^^^^^^^^          ^^^^^
+
+Disconnect
+----------
+
+Uses FF command byte.
+
+
+Basic challenge operation
+-------------------------
+
+Host sends a challenge of some kind, followed by 0xfe pulsing
+
+46 B9 6A 00 0C   00 02 00 00 80 00   00 F8 16
+
+Much simpler than in STC15
+
+MCU sends back some response:
+
+46 B9 68 00 0C   00 02 36 AD 4E 83   02 2A 16
+
+Host now sends some longer challenge, followed by more pulses:
+
+46 B9 6A 00 20   00 0C 7C 00 7C 01 7C 02 7C 03 7D 00 7D 01 7D 02 7D 03 7E 00 7E 01 7E 02 7E 03   06 84 16
+
+MCU sends back some response:
+
+46 B9 68 00 20   00 0C 4D C6 4D DB 4D E7 4D F3 4D F6 4E 0E 4E 11 4E 26 4E 26 4E 32 4E 41 4E 56   09 DC 16
+
+Host now seems to initiate a baud switch or something like that
+
+46 B9 6A 00 0E   01 00 00 FF CC 01 7C 80   03 41 16
+
+MCU acknowlegdes it:
+
+46 B9 68 00 07   01   00 70 16
+
+Now the MCU switches to the new baud rate.
+
+
+Challenges observed
+-------------------
+
+6 MHz:
+
+46B96A0020000C 1400 1401 1402 1403 1500 1501 1502 1503 1600 1601 1602 1603 01A416
+
+5.5 MHz:
+
+46B96A0020000C 5C00 5C01 5C02 5C03 5D00 5D01 5D02 5D03 5E00 5E01 5E02 5E03 050416
+
+
+11 MHz:
+
+46B96A0020000C 5B00 5B01 5B02 5B03 5C00 5C01 5C02 5C03 5D00 5D01 5D02 5D03 04F816
+
+20 MHz:
+
+46B96A0020000C 3600 3601 3602 3603 3700 3701 3702 3703 3800 3801 3802 3803 033C16
+
+24 MHz:
+
+46B96A0020000C 7C00 7C01 7C02 7C03 7D00 7D01 7D02 7D03 7E00 7E01 7E02 7E03 068416
+
+27 MHz:
+
+46B96A0020000C B000 B001 B002 B003 B100 B101 B102 B103 B200 B201 B202 B203 08F416
+
+
+Ranges vs trim value
+--------------------
+
+46 B9 6A 00 20 00 0C   00 00  80 00  FF 00  00 01  80 01  FF 01  00 02  80 02  FF 02  00 03  80 03  FF 03   06 A4 16
+46 B9 68 00 20 00 0C   36 9B  4E 92  65 E4  36 CB  4E 7D  66 29  36 D1  4E 83  66 05  36 CB  4E C2  66 47   0A EA 16
+
+first byte determines general trim value... range of ~16 to ~30 MHz, the second byte (00..03) is a fine adjustment.
+
+
+Clock division?
+---------------
+
+5.5 MHz vs 11 Mhz: challenge is about the same. it's likely some kind of clock divider is used!
+
+5.5 Mhz switch: 01 00 00 FF CC 01 5C 80 clkdiv = 4?
+11  MHz switch: 01 00 00 FF CC 01 5B 80 clkdiv = 2?
+22  MHz switch: 01 00 00 FF CC 01 5C 80 clkdiv = 1?
+
+22 Mhz  option packet: 0400005AA5FFFFFF00FFFF00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF01516D405D0201FFFDFFFFFF8BBFF7FE
+11 MHz  option packet: 0400005AA5FFFFFF00FFFF00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF00A8AF985D0102FFFDFFFFFF8BBFF7FE
+5.5 MHz option packet: 0400005AA5FFFFFF00FFFF00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF005462585D0004FFFDFFFFFF8BBFF7FE
+                                                                                             ^^ clkdiv?	
+                                                                                 ^^^^^^^^ clkspeed
+
+Always 24 MHz for programming
+-----------------------------
+
+Calibration for anything but 24 Mhz (and around that) fails when switching baud. Another observation is that there is no
+programming speed being calibrated anymore. This may suggest that a fixed speed is used for programming.
+
+Adjusting BRT calculation to 24 MHz in the switch packet seems to work. So it is really using 24 MHz by default;
+probably some pre-calibrated value.
