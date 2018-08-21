@@ -85,6 +85,7 @@ class TestProgramFuzzed(unittest.TestCase):
             "./tests/stc89c52rc.yml",
             "./tests/stc15l104w.yml",
             "./tests/stc15f104e.yml",
+            "./tests/stc8a8k64s4a12.yml",
         ]
         fuzzer = ByteArrayFuzzer()
         fuzzer.cut_propability = 0.01
