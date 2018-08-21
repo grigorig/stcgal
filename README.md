@@ -45,6 +45,7 @@ So far, stcgal was tested with the following MCU models:
 * STC15F104W (BSL version: 7.1.4Q)
 * IAP15F2K61S2 (BSL version: 7.1.4S)
 * STC15L2K16S2 (BSL version: 7.2.4S)
+* IAP15L2K61S2 (BSL version: 7.2.5S)
 * STC15W408AS (BSL version: 7.2.4T)
 * STC15W4K56S4 (BSL version: 7.3.4T, UART and USB mode)
 * STC8A8K64S4A12 (BSL version: 7.3.9U)
