@@ -52,6 +52,11 @@ class Utils:
 
         return sep.join(["%02X" % x for x in bytes(bytestr)])
 
+    @classmethod
+    def decode_packed_bcd(cls, byt):
+        """Decode two-digit packed BCD value"""
+        return (byt & 0x0f) + (10 * (byt >> 4))
+
 
 class BaudType:
     """Check baud rate for validity"""

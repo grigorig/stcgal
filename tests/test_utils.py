@@ -64,6 +64,14 @@ class TestUtils(unittest.TestCase):
         with self.assertRaises(Exception):
             Utils.hexstr([400, 500])
 
+    def test_decode_packed_bcd(self):
+        """Test packed BCD decoder"""
+        self.assertEqual(Utils.decode_packed_bcd(0x01), 1)
+        self.assertEqual(Utils.decode_packed_bcd(0x10), 10)
+        self.assertEqual(Utils.decode_packed_bcd(0x11), 11)
+        self.assertEqual(Utils.decode_packed_bcd(0x25), 25)
+        self.assertEqual(Utils.decode_packed_bcd(0x99), 99)
+
 class TestBaudType(unittest.TestCase):
     """Test BaudType class"""
 

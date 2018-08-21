@@ -1554,6 +1554,8 @@ class Stc8Protocol(Stc15Protocol):
     def __init__(self, port, handshake, baud, trim):
         Stc15Protocol.__init__(self, port, handshake, baud, trim)
         self.trim_divider = None
+        self.reference_voltage = None
+        self.mfg_date = ()
 
     def initialize_options(self, status_packet):
         """Initialize options"""
@@ -1580,12 +1582,24 @@ class Stc8Protocol(Stc15Protocol):
 
         # wakeup timer factory value
         self.wakeup_freq, = struct.unpack(">H", packet[23:25])
+        self.reference_voltage, = struct.unpack(">H", packet[35:37])
+        self.mfg_date = (
+            2000 + Utils.decode_packed_bcd(packet[37]),
+            Utils.decode_packed_bcd(packet[38]),
+            Utils.decode_packed_bcd(packet[39])
+        )
 
         bl_version, bl_stepping = struct.unpack("BB", packet[17:19])
         bl_minor = packet[22] & 0x0f
         self.mcu_bsl_version = "%d.%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
                                                bl_minor, chr(bl_stepping))
         self.bsl_version = bl_version
+
+    def print_mcu_info(self):
+        """Print additional STC8 info"""
+        super().print_mcu_info()
+        print("Target ref. voltage: %d mV" % self.reference_voltage)
+        print("Target mfg. date: %04d-%02d-%02d" % self.mfg_date)
 
     def calibrate(self):
         """Calibrate selected user frequency frequency and switch to selected baudrate."""
