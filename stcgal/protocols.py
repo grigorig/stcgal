@@ -1569,6 +1569,9 @@ class Stc8Protocol(Stc15Protocol):
     def initialize_status(self, packet):
         """Decode status packet and store basic MCU info"""
 
+        if len(packet) < 39:
+            raise StcProtocolException("invalid status packet")
+
         self.mcu_clock_hz, = struct.unpack(">I", packet[1:5])
         self.external_clock = False
         # all ones means no calibration
