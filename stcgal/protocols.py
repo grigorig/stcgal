@@ -1667,7 +1667,7 @@ class Stc8Protocol(Stc15Protocol):
         sys.stdout.flush()
         packet = bytes([0x01, 0x00, 0x00])
         bauds = self.baud_transfer * 4
-        packet += struct.pack(">H", int(65535 - 24E6 / bauds))
+        packet += struct.pack(">H", round(65535 - 24E6 / bauds))
         packet += bytes([user_trim[1], user_trim[0]])
         iap_wait = self.get_iap_delay(24E6)
         packet += bytes([iap_wait])
