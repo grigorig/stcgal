@@ -1570,15 +1570,11 @@ class Stc8Protocol(Stc15Protocol):
         """Decode status packet and store basic MCU info"""
 
         self.mcu_clock_hz, = struct.unpack(">I", packet[1:5])
-        # XXX: external clock not supported nor tested
         self.external_clock = False
         # all ones means no calibration
         # new chips are shipped without any calibration
         # XXX: somehow check if that still holds
         if self.mcu_clock_hz == 0xffffffff: self.mcu_clock_hz = 0
-
-        # pre-calibrated trim adjust for 24 MHz, range 0x40
-        self.freq_count_24 = packet[4]
 
         # wakeup timer factory value
         self.wakeup_freq, = struct.unpack(">H", packet[23:25])
@@ -1614,8 +1610,6 @@ class Stc8Protocol(Stc15Protocol):
         target_user_count = round(user_speed / (self.baud_handshake/2))
 
         # calibration, round 1
-        # XXX: challenges need work. the ranges and how they related to clock frequency
-        # is different. A clock divider is used for lower frequencies.
         print("Trimming frequency: ", end="")
         sys.stdout.flush()
         packet = bytes([0x00])
