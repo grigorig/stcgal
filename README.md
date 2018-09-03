@@ -35,13 +35,13 @@ Features
 Further information
 -------------------
 
-[Installation](INSTALL.md)
+[Installation](doc/INSTALL.md)
 
-[How to use stcgal](USAGE.md)
+[How to use stcgal](doc/USAGE.md)
 
-[Frequently Asked Questions](FAQ.md)
+[Frequently Asked Questions](doc/FAQ.md)
 
-[List of tested MCU models](MODELS.md)
+[List of tested MCU models](doc/MODELS.md)
 
 License
 -------
