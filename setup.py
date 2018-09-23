@@ -24,14 +24,15 @@
 import stcgal
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as fh:
+with open("doc/PyPI.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name = "stcgal",
     version = stcgal.__version__,
     packages = find_packages(exclude=["doc", "tests"]),
-    install_requires = ["pyserial", "tqdm"],
+    data_files = [("doc", ["README.md", "doc/FAQ.md", "doc/MODELS.md", "doc/USAGE.md"])],
+    install_requires = ["pyserial>=3.0", "tqdm>=4.0.0"],
     extras_require = {
         "usb": ["pyusb>=1.0.0"]
     },
@@ -50,7 +51,7 @@ setup(
     license = "MIT License",
     platforms = "any",
     classifiers = [
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
