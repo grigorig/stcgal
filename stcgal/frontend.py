@@ -214,7 +214,7 @@ def cli():
     # check arguments
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description="stcgal {} - an STC MCU ISP flash tool\n".format(stcgal.__version__) +
-                                                 "(C) 2014-2017 Grigori Goronzy\nhttps://github.com/grigorig/stcgal")
+                                                 "(C) 2014-2018 Grigori Goronzy and others\nhttps://github.com/grigorig/stcgal")
     parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
