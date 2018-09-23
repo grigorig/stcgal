@@ -182,6 +182,10 @@ class StcGal:
             sys.stdout.flush()
             print("I/O error: %s" % ex, file=sys.stderr)
             return 1
+        except Exception as ex:
+            sys.stdout.flush()
+            print("Unexpected error: %s" % ex, file=sys.stderr)
+            return 1
 
         try:
             if self.opts.code_image:
