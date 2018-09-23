@@ -31,7 +31,6 @@ setup(
     name = "stcgal",
     version = stcgal.__version__,
     packages = find_packages(exclude=["doc", "tests"]),
-    data_files = [("doc", ["README.md", "doc/FAQ.md", "doc/MODELS.md", "doc/USAGE.md"])],
     install_requires = ["pyserial>=3.0", "tqdm>=4.0.0"],
     extras_require = {
         "usb": ["pyusb>=1.0.0"]
