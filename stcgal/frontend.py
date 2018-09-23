@@ -147,6 +147,10 @@ class StcGal:
     def run(self):
         """Run programmer, main entry point."""
 
+        if self.opts.version:
+            print("stcgal {}".format(stcgal.__version__))
+            return 0
+
         try:
             self.protocol.connect(autoreset=self.opts.autoreset, resetcmd=self.opts.resetcmd)
             if isinstance(self.protocol, StcAutoProtocol):
@@ -227,6 +231,7 @@ def cli():
     parser.add_argument("-o", "--option", help="set option (can be used multiple times)", action="append")
     parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15 series only)", type=float, default=0.0)
     parser.add_argument("-D", "--debug", help="enable debug output", action="store_true")
+    parser.add_argument("-V", "--version", help="print version info and exit", action="store_true")
     opts = parser.parse_args()
 
     # run programmer
