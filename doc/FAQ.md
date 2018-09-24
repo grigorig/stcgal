@@ -7,7 +7,7 @@ By design, this is not possible with STC's bootloader protocols. This is conside
 
 ### Which serial interfaces have been tested with stcgal?
 
-The following USB-based UART interface chips have been successfully tested with stcgal:
+stcgal should work fine with common 16550 compatible UARTs that are traditionally available on many platforms. However, nowadays, USB-based UARTs are the typical case. The following USB-based UART interface chips have been successfully tested with stcgal:
 
 * FT232 family (OS: Linux, Windows)
 * CH340/CH341 (OS: Windows, Linux requires Kernel 4.10)
@@ -40,7 +40,7 @@ Various remedies are possible to avoid parasitic powering.
 
 First, make sure that the frequency specified uses the correct unit. The frequency is specified in kHz and the safe range is approximately 5000 kHz - 30000 kHz. Furthermore, frequency trimming uses the UART clock as the clock reference, so UART incompatibilities or clock inaccuracies can also result in issues with frequency trimming. If possible, try another UART chip.
 
-### Baud rate switching fails
+### Baud rate switching fails or flash programming fails
 
 This can especially happen at high programming baud rates, e.g. 115200 baud. Try a lower baudrate, or stick to the default of 19200 baud. Some USB UARTs are known to cause problems due to inaccurate timing as well, which can lead to various issues.
 
