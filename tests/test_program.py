@@ -27,6 +27,7 @@ from unittest.mock import patch
 import yaml
 import stcgal.frontend
 import stcgal.protocols
+from stcgal.protocols import StcProtocolException
 
 def convert_to_bytes(list_of_lists):
     """Convert lists of integer lists to list of byte lists"""
@@ -127,6 +128,24 @@ class ProgramTests(unittest.TestCase):
     def test_program_stc15l1(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test a programming cycle with STC15 protocol, L1 series"""
         self._program_yml("./tests/stc15l104w.yml", serial_mock, read_mock)
+
+    @patch("stcgal.protocols.StcBaseProtocol.read_packet")
+    @patch("stcgal.protocols.Stc89Protocol.write_packet")
+    @patch("stcgal.protocols.serial.Serial", autospec=True)
+    @patch("stcgal.protocols.time.sleep")
+    @patch("sys.stdout")
+    def test_program_stc8_untrimmed(self, out, sleep_mock, serial_mock, write_mock, read_mock):
+        """Test error with untrimmed MCU"""
+        with open("./tests/stc8f2k08s2-untrimmed.yml") as test_file:
+            test_data = yaml.load(test_file.read())
+            opts = get_default_opts()
+            opts.trim = 0.0
+            opts.protocol = test_data["protocol"]
+            opts.code_image.read.return_value = bytes(test_data["code_data"])
+            serial_mock.return_value.inWaiting.return_value = 1
+            read_mock.side_effect = convert_to_bytes(test_data["responses"])
+            gal = stcgal.frontend.StcGal(opts)
+            self.assertEqual(gal.run(), 1)
 
     def test_program_stc15w4_usb(self):
         """Test a programming cycle with STC15W4 USB protocol"""
