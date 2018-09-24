@@ -43,6 +43,7 @@ def get_default_opts():
     opts.trim = 22118
     opts.eeprom_image = None
     opts.debug = False
+    opts.version = False
     opts.code_image.name = "test.bin"
     opts.code_image.read.return_value = b"123456789"
     return opts
