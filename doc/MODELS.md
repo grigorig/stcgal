@@ -1,7 +1,7 @@
 Supported MCU models
 ====================
 
-stcgal should fully support STC 89/90/10/11/12/15 series MCUs. Support for STC8 series MCUs is work in progress.
+stcgal should fully support STC 89/90/10/11/12/15/8 series MCUs.
 
 So far, stcgal was tested with the following MCU models:
 
