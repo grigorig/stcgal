@@ -32,6 +32,17 @@ Features
 * Automatic power-cycling with DTR toggle or a custom shell command
 * Automatic UART protocol detection
 
+Quickstart
+----------
+
+Install stcgal (might need root/administrator privileges):
+    
+    pip3 install stcgal
+
+Call stcgal and show usage:
+
+    stcgal -h
+
 Further information
 -------------------
 
