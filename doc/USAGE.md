@@ -4,12 +4,14 @@ Usage
 Call stcgal with ```-h``` for usage information.
 
 ```
-usage: stcgal.py [-h] [-a] [-P {stc89,stc12a,stc12,stc15a,stc15,auto}]
+usage: stcgal.py [-h] [-a] [-r RESETCMD]
+                 [-P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}]
                  [-p PORT] [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
+                 [-V]
                  [code_image] [eeprom_image]
 
-stcgal 1.0 - an STC MCU ISP flash tool
-(C) 2014-2015 Grigori Goronzy
+stcgal 1.5 - an STC MCU ISP flash tool
+(C) 2014-2018 Grigori Goronzy and others
 https://github.com/grigorig/stcgal
 
 positional arguments:
@@ -20,18 +22,20 @@ optional arguments:
   -h, --help            show this help message and exit
   -a, --autoreset       cycle power automatically by asserting DTR
   -r RESETCMD, --resetcmd RESETCMD
-                        Use this shell command for board power-cycling
-                        (instead of DTR assertion)
-  -P {stc89,stc12a,stc12,stc15a,stc15,auto}, --protocol {stc89,stc12a,stc12,stc15a,stc15,auto}
-                        protocol version
+                        shell command for board power-cycling (instead of DTR
+                        assertion)
+  -P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}, --protocol {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}
+                        protocol version (default: auto)
   -p PORT, --port PORT  serial port device
   -b BAUD, --baud BAUD  transfer baud rate (default: 19200)
   -l HANDSHAKE, --handshake HANDSHAKE
                         handshake baud rate (default: 2400)
   -o OPTION, --option OPTION
-                        set option (can be used multiple times)
-  -t TRIM, --trim TRIM  RC oscillator frequency in kHz (STC15 series only)
+                        set option (can be used multiple times, see
+                        documentation)
+  -t TRIM, --trim TRIM  RC oscillator frequency in kHz (STC15+ series only)
   -D, --debug           enable debug output
+  -V, --version         print version info and exit
 ```
 
 Most importantly, ```-p``` sets the serial port to be used for programming.
@@ -43,6 +47,7 @@ BSL. The protocol can be specified with the ```-P``` flag. By default
 UART protocol autodetection is used. The mapping between protocols
 and MCU series is as follows:
 
+* ```auto``` Automatic detection of UART based protocols (default)
 * ```stc89``` STC89/90 series
 * ```stc12a``` STC12x052 series and possibly others
 * ```stc12b``` STC12x52 series, STC12x56 series and possibly others
@@ -51,11 +56,10 @@ and MCU series is as follows:
 * ```stc15``` Most STC15 series
 * ```stc8``` STC8 series
 * ```usb15``` USB support on STC15W4 series
-* ```auto``` Automatic detection of UART based protocols (default)
 
-The text files in the doc/ subdirectory provide an overview over
-the reverse engineered protocols used by the BSLs. For more details,
-please read the source code.
+The text files in the doc/reverse-engineering subdirectory provide an
+overview over the reverse engineered protocols used by the BSLs. For
+more details, please read the source code.
 
 ### Getting MCU information
 
@@ -91,6 +95,8 @@ Target options:
   uart2_pin_mode=normal
 Disconnected!
 ```
+
+If the identification fails, see the [FAQ](FAQ.md) for troubleshooting.
 
 ### Program the flash memory
 
@@ -195,8 +201,8 @@ If the internal RC oscillator is used (```clock_source=internal```),
 stcgal can execute a trim procedure to adjust it to a given value. This
 is only supported by STC15 series and newer. The trim values are stored
 with device options. Use the ```-t``` flag to request trimming to a certain
-value. Generally, frequencies between 4 and 35 MHz can be achieved. If
-trimming fails, stcgal will abort.
+value. Generally, frequencies between 4000 and 30000 kHz can be achieved.
+If trimming fails, stcgal will abort.
 
 ### Automatic power-cycling
 
