@@ -20,6 +20,10 @@ Interfaces that are known to not work:
 
 In general, stcgal requires accurate baud rate timings and parity support.
 
+### stcgal fails to start with the error `module 'serial' has no attribute 'PARITY_NONE'` or similar
+
+There is a module name conflict between the PyPI package 'serial' (a data serialization library) and the PyPI package 'pyserial' (the serial port access library needed by stcgal). You have to uninstall the 'serial' package (`pip3 uninstall serial`) and reinstall 'pyserial' (`pip3 install --force-reinstall pyserial`) to fix this. There is no other known solution at the moment.
+
 ### stcgal fails to recognize the MCU and is stuck at "Waiting for MCU"
 
 There are a number of issues that can result in this symptom:
