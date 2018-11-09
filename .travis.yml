@@ -9,7 +9,8 @@ python:
   - "3.6"
   - "pypy3"
 before_install:
-  - sudo apt install rpm dpkg-dev debhelper dh-python python3-setuptools fakeroot python3-serial python3-yaml
+  - sudo apt update
+  - sudo apt install python3-setuptools python3-serial python3-yaml
 install:
   - pip install pyusb
 script:
