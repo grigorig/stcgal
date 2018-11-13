@@ -7,12 +7,10 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  - "pypy3"
-before_install:
-  - sudo apt update
-  - sudo apt install python3-setuptools python3-serial python3-yaml
+  #- "pypy3"
 install:
-  - pip install pyusb
+  - pip install pyusb coverage coveralls pyserial PyYAML tqdm
 script:
   - python setup.py build
-  - python setup.py test
+  - coverage run --source=stcgal setup.py test
+  - coveralls
