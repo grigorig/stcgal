@@ -7,7 +7,7 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  - "pypy3"
+  #- "pypy3"
 install:
   - pip install pyusb coverage coveralls pyserial PyYAML tqdm
 script:
