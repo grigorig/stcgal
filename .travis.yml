@@ -12,7 +12,8 @@ before_install:
   - sudo apt update
   - sudo apt install python3-setuptools python3-serial python3-yaml
 install:
-  - pip install pyusb
+  - pip install pyusb coverage coveralls
 script:
   - python setup.py build
-  - python setup.py test
+  - coverage run --source=stcgal setup.py test
+  - coveralls
