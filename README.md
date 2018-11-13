@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/grigorig/stcgal.svg)](https://travis-ci.org/grigorig/stcgal)
+[![PyPI version](https://badge.fury.io/py/stcgal.svg)](https://badge.fury.io/py/stcgal)
 
 stcgal - STC MCU ISP flash tool
 ===============================
