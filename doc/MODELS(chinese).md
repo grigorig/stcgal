@@ -1,8 +1,8 @@
 文档说明 Explanation
 ------------------------
-此文档翻译自INSTALL.md
+此文档翻译自MODELS.md
 
-This document was translated from INSTALL.md
+This document was translated from MODELS.md
 
 最后修改时间：2020年6月8日
 
