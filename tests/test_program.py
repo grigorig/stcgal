@@ -137,7 +137,7 @@ class ProgramTests(unittest.TestCase):
     def test_program_stc8_untrimmed(self, out, sleep_mock, serial_mock, write_mock, read_mock):
         """Test error with untrimmed MCU"""
         with open("./tests/stc8f2k08s2-untrimmed.yml") as test_file:
-            test_data = yaml.load(test_file.read())
+            test_data = yaml.load(test_file.read(), Loader=yaml.SafeLoader)
             opts = get_default_opts()
             opts.trim = 0.0
             opts.protocol = test_data["protocol"]
@@ -154,7 +154,7 @@ class ProgramTests(unittest.TestCase):
     def _program_yml(self, yml, serial_mock, read_mock):
         """Program MCU with data from YAML file"""
         with open(yml) as test_file:
-            test_data = yaml.load(test_file.read())
+            test_data = yaml.load(test_file.read(), Loader=yaml.SafeLoader)
             opts = get_default_opts()
             opts.protocol = test_data["protocol"]
             opts.code_image.read.return_value = bytes(test_data["code_data"])

@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/grigorig/stcgal.svg)](https://travis-ci.org/grigorig/stcgal)
-[![Coverage Status](https://coveralls.io/repos/github/grigorig/stcgal/badge.svg?branch=coveralls)](https://coveralls.io/github/grigorig/stcgal?branch=coveralls)
+[![Build Status](https://github.com/grigorig/stcgal/workflows/Python%20package/badge.svg?branch=master)](https://github.com/grigorig/stcgal/actions?query=workflow%3A%22Python+package%22)
+[![Coverage Status](https://coveralls.io/repos/github/grigorig/stcgal/badge.svg?branch=master)](https://coveralls.io/github/grigorig/stcgal?branch=master)
 [![PyPI version](https://badge.fury.io/py/stcgal.svg)](https://badge.fury.io/py/stcgal)
 
 stcgal - STC MCU ISP flash tool
