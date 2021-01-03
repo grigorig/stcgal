@@ -417,7 +417,7 @@ class Stc89Protocol(StcBaseProtocol):
             raise StcFramingException("packet checksum mismatch")
 
         payload = StcBaseProtocol.extract_payload(self, packet)
-        return payload[:-1]
+        return payload[:-2]
 
     def write_packet(self, packet_data):
         """Send packet to MCU.
@@ -812,7 +812,7 @@ class Stc12BaseProtocol(StcBaseProtocol):
             raise StcFramingException("packet checksum mismatch")
 
         payload = StcBaseProtocol.extract_payload(self, packet)
-        return payload[:-2]
+        return payload[:-3]
 
     def write_packet(self, packet_data):
         """Send packet to MCU.
