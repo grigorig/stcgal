@@ -155,8 +155,8 @@ class IHex:
     def make_line(self, line_type, addr, data):
         line = struct.pack(">BHB", len(data), addr, line_type)
         line += data
-        line += chr(self.calc_checksum(line))
-        return ":" + line.encode("hex").upper() + "\r\n"
+        line += bytes([self.calc_checksum(line)])
+        return ":" + line.hex().upper() + "\r\n"
 
     def write(self):
         """Write Intel HEX data to string"""
@@ -207,7 +207,7 @@ class IHex:
                 output += self.make_line(
                     0x05, 0, struct.pack(">I", self.start))
 
-        output += self.make_line(0x01, 0, "")
+        output += self.make_line(0x01, 0, b"")
         return output
 
     def write_file(self, fname):
