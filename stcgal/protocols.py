@@ -225,6 +225,8 @@ class StcBaseProtocol(ABC):
             mcu_name += "E" if self.status_packet[17] < 0x70 else "W"
             self.model = self.model._replace(name = mcu_name)
 
+        self.bsl_version = self.status_packet[17]
+
     def get_status_packet(self):
         """Read and decode status packet"""
 
@@ -382,6 +384,10 @@ class StcAutoProtocol(StcBaseProtocol):
                 break
         else:
             self.protocol_name = None
+
+        # STC89 devices with BSL version 7.x.x have a slightly different protocol
+        if self.protocol_name == "stc89" and self.bsl_version >= 0x70:
+            self.protocol_name = "stc89a"
 
     def initialize_options(self, status_packet):
         raise NotImplementedError
@@ -605,6 +611,22 @@ class Stc89Protocol(StcBaseProtocol):
         if response[0] != 0x8d:
             raise StcProtocolException("incorrect magic in option packet")
         print("done")
+
+
+class Stc89AProtocol(Stc89Protocol):
+    """STC89 protocol variant with different framing"""
+
+    def extract_payload(self, packet):
+        """Verify the checksum of packet and return its payload"""
+
+        packet_csum, = struct.unpack(">H", packet[-3:-1])
+        calc_csum = sum(packet[2:-3]) & 0xffff
+        if packet_csum != calc_csum:
+            self.dump_packet(packet)
+            raise StcFramingException("packet checksum mismatch")
+
+        payload = StcBaseProtocol.extract_payload(self, packet)
+        return payload[:-3]
 
 
 class Stc12AOptionsMixIn:
