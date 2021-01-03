@@ -49,7 +49,6 @@ and MCU series is as follows:
 
 * ```auto``` Automatic detection of UART based protocols (default)
 * ```stc89``` STC89/90 series
-* ```stc89a``` STC89 series with BSL 7.x.x
 * ```stc12a``` STC12x052 series and possibly others
 * ```stc12b``` STC12x52 series, STC12x56 series and possibly others
 * ```stc12``` Most STC10/11/12 series
