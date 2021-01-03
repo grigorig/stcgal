@@ -10,3 +10,6 @@ __pycache__/
 /debian/stcgal*
 /debian/files
 /.vscode
+.coverage
+coverage.xml
+htmlcov/
