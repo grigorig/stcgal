@@ -144,6 +144,15 @@ class StcGal:
         self.protocol.program_options()
         self.protocol.disconnect()
 
+    def erase_mcu(self):
+        """Erase MCU without programming"""
+
+        code_size = self.protocol.model.code
+
+        self.protocol.handshake()
+        self.protocol.erase_flash(code_size, code_size)
+        self.protocol.disconnect()
+
     def run(self):
         """Run programmer, main entry point."""
 
@@ -190,8 +199,10 @@ class StcGal:
         try:
             if self.opts.code_image:
                 self.program_mcu()
-                return 0
-            self.protocol.disconnect()
+            elif self.opts.erase:
+                self.erase_mcu()
+            else:
+                self.protocol.disconnect()
             return 0
         except NameError as ex:
             sys.stdout.flush()
@@ -223,8 +234,10 @@ def cli():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description="stcgal {} - an STC MCU ISP flash tool\n".format(stcgal.__version__) +
                                                  "(C) 2014-2018 Grigori Goronzy and others\nhttps://github.com/grigorig/stcgal")
-    parser.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
+    exclusives = parser.add_mutually_exclusive_group()
+    exclusives.add_argument("code_image", help="code segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
+    exclusives.add_argument("-e", "--erase", help="only erase flash memory", action="store_true")
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
     parser.add_argument("-r", "--resetcmd",  help="shell command for board power-cycling (instead of DTR assertion)", action="store")
     parser.add_argument("-P", "--protocol", help="protocol version (default: auto)",
