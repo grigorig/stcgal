@@ -3,7 +3,9 @@ Frequently Asked Questions
 
 ### Is it possible to read code (or EEPROM) memory out of a chip?
 
-By design, this is not possible with STC's bootloader protocols. This is considered a security feature by STC. There is no known workaround at this time. See issue #7 for more details and discussion.
+By design, it is not possible to read back code flash memory with STC's bootloader protocols. This is considered a security feature by STC. There is no known workaround at this time. See issue #7 for more details and discussion.
+
+On some STC MCUs, you can erase code flash memory without erasing EEPROM. That means you can create a program to dump the EEPROM. stcgal does not have any native support to do that at this time.
 
 ### Which serial interfaces have been tested with stcgal?
 
