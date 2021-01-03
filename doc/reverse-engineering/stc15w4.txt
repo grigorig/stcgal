@@ -1,0 +1,108 @@
+fresh chip, RC frequency untuned, caught with stcgal
+
+2015-12-10 23:39:46.886233: PC
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+7F 7F 7F 7F 7F 7F 7F 7F 7F 7F 7F
+2015-12-10 23:39:50.989044: MCU
+46 B9 68 00 34 50 8D FF 73 96 F5 7B 9F FF FF FF
+FF FF 25 EF 00 00 73 54 00 F5 28 04 06 70 96 02
+15 19 1C 1E 23 00 EC E0 04 D7 F8 73 BF FF FF 15
+09 25 60 16 92 16
+2015-12-10 23:39:51.231028: PC
+46 B9 6A 00 07 82 00 F3 16
+
+Checking target MCU ... 
+  MCU type: STC15W4K56S4
+  F/W version: 7.3.4T
+
+Current H/W Option:
+  . Current system clock source is internal IRC oscillator
+  . IRC is unadjusted
+  . Oscillator gain is HIGH
+  . Wakeup Timer frequency: 36.351KHz
+  . Do not detect the level of P3.2 and P3.3 next download
+  . Power-on reset, use the extra power-on delay
+  . RESET pin behaves as I/O pin
+  . Interrupt while detect a Low-Voltage
+  . Thresh voltage level of the built-in LVD : 2.78 V
+  . Permit EEPROM operation under Low-Voltag
+  . CPU-Core supply level : 3.38 V
+  . Hardware do not enable Watch-Dog-Timer
+  . Watch-Dog-Timer pre-scalar : 64
+  . Watch-Dog-Timer stop count in idle mode
+  . Program can modify the Watch-Dog-Timer scalar
+  . Erase user EEPROM area at next download
+  . Do not control 485 at next download
+  . Do not check user password next download
+  . TXD is independent IO
+  . TXD pin as quasi-bidirectional mode after reset
+  . P2.0 output HIGH level after reset
+
+  . MCU type: STC15W4K56S4
+  F/W version: 7.3.4T
+
+  Complete !
+
+Waiting for MCU, please cycle power: done
+Target model:
+  Name: STC15W4K56S4
+  Magic: F528
+  Code flash: 56.0 KB
+  EEPROM flash: 3.0 KB
+Target frequency: 0.000 MHz
+Target BSL version: 7.3.4T
+Target wakeup frequency: 36.351 KHz
+Target options:
+  reset_pin_enabled=False
+  clock_source=internal
+  clock_gain=high
+  watchdog_por_enabled=False
+  watchdog_stop_idle=True
+  watchdog_prescale=64
+  low_voltage_reset=False
+  low_voltage_threshold=3
+  eeprom_lvd_inhibit=False
+  eeprom_erase_enabled=True
+  bsl_pindetect_enabled=False
+  por_reset_delay=long
+  rstout_por_state=high
+  uart2_passthrough=False
+  uart2_pin_mode=normal
+Disconnected!
+
+
+cpu core supply level
+
+2.68v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 7A C0 FD 27 ED 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 EA 92 FF FF FF 15 09 25 60 14 BD 16
+
+3.33v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 92 30 FD 25 EA 00 FC 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 F7 92 FF FF FF 15 09 25 60 15 49 16
+
+3.63v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 7A C0 FD 25 EF 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 FD 92 FF FF FF 15 09 25 60 14 D0 16
+
+3.73v
+46 B9 68 00 34 50 8D FF 73 96 F7 BC 9F 00 5B 92 30 FD 25 EA 00 00 73 54 00 F5 28 04 06 70 96 02 15 19 1C 1E 23 00 EC E0 04 D7 FF 92 FF FF FF 15 09 25 60 14 55 16
+                                                                                                                              ^^
+                                                                                                                              core voltage
+voltage: ff -> 3.73v
+         fd -> 3.63v
+         f7 -> 3.33v
+         ea -> 2.68v                                                                                               
+

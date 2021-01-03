@@ -1,0 +1,35 @@
+Cycling power: done
+Waiting for MCU: done
+Protocol detected: stc8
+Target model:
+  Name: STC8F2K08S2
+  Magic: F641
+  Code flash: 8.0 KB
+  EEPROM flash: 56.0 KB
+Target frequency: 0.000 MHz
+Target BSL version: 7.3.10U
+Target wakeup frequency: 34.950 KHz
+Target ref. voltage: 1340 mV
+Target mfg. date: 2018-05-22
+Target options:
+  reset_pin_enabled=False
+  clock_gain=high
+  watchdog_por_enabled=False
+  watchdog_stop_idle=True
+  watchdog_prescale=64
+  low_voltage_reset=False
+  low_voltage_threshold=2
+  eeprom_erase_enabled=True
+  bsl_pindetect_enabled=False
+  por_reset_delay=long
+  rstout_por_state=high
+  uart1_remap=False
+  uart2_passthrough=False
+  uart2_pin_mode=normal
+  epwm_open_drain=False
+  program_eeprom_split=29440
+Loading flash: 80 bytes (Intel HEX)
+<- Packet data: 46 B9 68 00 30 50 FF FF FF FF 8F 00 04 FF FF 8B FD FF 27 38 F5 73 73 55 00 F6 41 0A 88 86 6F 8F 08 20 20 20 01 00 00 20 05 3C 18 05 22 32 FF 12 12 16
+Protocol error: uncalibrated, please provide a trim value
+-> Packet data: 46 B9 6A 00 07 FF 01 70 16
+Disconnected!
