@@ -30,7 +30,8 @@ There are a number of issues that can result in this symptom:
 
 * Electrical issues and wrong connections. Make sure that RX/TX, GND and VCC are connected correctly. If you do not use the autoreset feature, also make sure to connect power only after stcgal starts, as the bootloader is only invoked on power-on reset.
 * Parasitic powering through I/O pins. The MCU can be powered through I/O pins (such as RX/TX) even if VCC is not connected. In this case, the power-on reset logic does not work. See next question.
-* Serial interface incompatibilities. Some USB-based UARTs have bad compatibility with STC MCUs for various reasons. You can try to lower the handshake baudrate from the standard 2400 baud to 1200 baud with the option `-l 1200`, which works around these issues in some cases.
+* Serial interface compatibility issues with protocol autodetection (for instance with some fake FTDI USB UART chips). Try to explicitly provide the protocol variant with the option ```-P```.
+* Other serial interface incompatibilities. Some USB-based UARTs have bad compatibility with STC MCUs for various reasons. You can try to lower the handshake baudrate from the standard 2400 baud to 1200 baud with the option `-l 1200`, which works around these issues in some cases.
 
 ### How can I avoid parasitic powering?
 
