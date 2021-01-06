@@ -1394,9 +1394,12 @@ class Stc15Protocol(Stc15AProtocol):
         # hardware UART. Only one family of models seems to lack a hardware
         # UART, and we can isolate those with a check on the magic.
         # This is a bit of a hack, but it works.
-        bauds = self.baud_transfer if (self.mcu_magic >> 8) == 0xf2 else self.baud_transfer * 4
-        packet += struct.pack(">H", int(65535 - program_speed / bauds))
-        packet += bytes(user_trim)
+        if (self.mcu_magic >> 8) == 0xf2:
+            packet += struct.pack(">H", int(65536 - program_speed / self.baud_transfer))
+            packet += struct.pack(">H", int(65536 - program_speed / 2 * 3 / self.baud_transfer))
+        else:
+            packet += struct.pack(">H", int(65536 - program_speed / (self.baud_transfer * 4)))
+            packet += bytes(reversed(user_trim))
         iap_wait = self.get_iap_delay(program_speed)
         packet += bytes([iap_wait])
         self.write_packet(packet)
@@ -1413,7 +1416,7 @@ class Stc15Protocol(Stc15AProtocol):
         sys.stdout.flush()
         packet = bytes([0x01])
         packet += bytes([self.freq_count_24, 0x40])
-        packet += struct.pack(">H", int(65535 - self.mcu_clock_hz / self.baud_transfer / 4))
+        packet += struct.pack(">H", int(65536 - self.mcu_clock_hz / self.baud_transfer / 4))
         iap_wait = self.get_iap_delay(self.mcu_clock_hz)
         packet += bytes([0x00, 0x00, iap_wait])
         self.write_packet(packet)
@@ -1664,7 +1667,7 @@ class Stc8Protocol(Stc15Protocol):
         sys.stdout.flush()
         packet = bytes([0x01, 0x00, 0x00])
         bauds = self.baud_transfer * 4
-        packet += struct.pack(">H", round(65535 - 24E6 / bauds))
+        packet += struct.pack(">H", round(65536 - 24E6 / bauds))
         packet += bytes([user_trim[1], user_trim[0]])
         iap_wait = self.get_iap_delay(24E6)
         packet += bytes([iap_wait])
