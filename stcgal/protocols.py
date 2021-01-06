@@ -1416,7 +1416,10 @@ class Stc15Protocol(Stc15AProtocol):
         sys.stdout.flush()
         packet = bytes([0x01])
         packet += bytes([self.freq_count_24, 0x40])
-        packet += struct.pack(">H", int(65536 - self.mcu_clock_hz / self.baud_transfer / 4))
+        bauds = int(65536 - self.mcu_clock_hz / self.baud_transfer / 4)
+        if bauds >= 65536:
+            raise StcProtocolException("baudrate adjustment failed")
+        packet += struct.pack(">H", bauds)
         iap_wait = self.get_iap_delay(self.mcu_clock_hz)
         packet += bytes([0x00, 0x00, iap_wait])
         self.write_packet(packet)
