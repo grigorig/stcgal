@@ -214,6 +214,8 @@ class StcBaseProtocol(ABC):
             print(msg, file=sys.stderr)
             self.model = MCUModelDatabase.MCUModel(name="UNKNOWN",
                 magic=self.mcu_magic, total=63488, code=63488, eeprom=0)
+        except ValueError as ex:
+            raise StcProtocolException(ex)
 
         # special case for duplicated mcu magic,
         #   0xf294 (STC15F104W, STC15F104E)

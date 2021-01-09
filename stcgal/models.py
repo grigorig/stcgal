@@ -1144,9 +1144,17 @@ class MCUModelDatabase:
     )
 
     @classmethod
+    def check_model(self, model):
+        # User reported bricked MCUs, GH #63
+        if model.name.startswith("STC8G"):
+            raise ValueError("MCU model {} is blacklisted".format(model.name))
+
+    @classmethod
     def find_model(self, magic):
         for model in self.models:
-            if model.magic == magic: return model
+            if model.magic == magic:
+                self.check_model(model)
+                return model
         raise NameError
 
     @classmethod
