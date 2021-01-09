@@ -181,7 +181,8 @@ class StcGal:
         except (StcFramingException, StcProtocolException) as ex:
             sys.stdout.flush()
             print("Protocol error: %s" % ex, file=sys.stderr)
-            self.protocol.disconnect()
+            if not isinstance(self.protocol, StcAutoProtocol):
+                self.protocol.disconnect()
             return 1
         except serial.SerialException as ex:
             sys.stdout.flush()
