@@ -1406,7 +1406,7 @@ class Stc15Protocol(Stc15AProtocol):
         response = self.read_packet()
         if len(response) < 1 or response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
-        time.sleep(0.2)
+        time.sleep(0.1)
         self.ser.baudrate = self.baud_transfer
 
     def switch_baud_ext(self):
@@ -1426,7 +1426,7 @@ class Stc15Protocol(Stc15AProtocol):
         response = self.read_packet()
         if len(response) < 1 or response[0] != 0x01:
             raise StcProtocolException("incorrect magic in handshake packet")
-        time.sleep(0.2)
+        time.sleep(0.1)
         self.ser.baudrate = self.baud_transfer
 
         # for switching back to RC, program factory values
