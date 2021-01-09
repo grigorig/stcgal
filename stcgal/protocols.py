@@ -1464,11 +1464,15 @@ class Stc15Protocol(Stc15AProtocol):
         Note that this protocol always seems to erase everything.
         """
 
-        # XXX: how does partial erase work?
-
         print("Erasing flash: ", end="")
         sys.stdout.flush()
-        packet = bytes([0x03, 0x00])
+        packet = bytes([0x03])
+        if erase_size <= flash_size:
+           # erase flash only
+           packet += bytes([0x00])
+        else:
+           # erase flash and eeprom
+           packet += bytes([0x01])
         if self.bsl_version >= 0x72:
             packet += bytes([0x00, 0x5a, 0xa5])
         self.write_packet(packet)
