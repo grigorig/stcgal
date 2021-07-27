@@ -86,6 +86,8 @@ class StcBaseProtocol(ABC):
         self.mcu_bsl_version = ""
         self.options = None
         self.model = None
+        self.split_eeprom = None
+        self.split_code = None
         self.uid = None
         self.debug = False
         self.status_packet = None
@@ -1613,6 +1615,9 @@ class Stc8Protocol(Stc15Protocol):
         print("Target ref. voltage: %d mV" % self.reference_voltage)
         print("Target mfg. date: %04d-%02d-%02d" % self.mfg_date)
 
+    def set_option(self, name, value):
+        super().set_option(name, value)
+        
     def calibrate(self):
         """Calibrate selected user frequency frequency and switch to selected baudrate."""
 
@@ -1881,7 +1886,13 @@ class Stc8dProtocol(Stc8Protocol):
 
     def __init__(self, port, handshake, baud, trim):
         Stc8Protocol.__init__(self, port, handshake, baud, trim)
-
+    
+    def set_option(self, name, value):
+        super().set_option(name, value)
+        if name=='program_eeprom_split':
+            self.split_code = Utils.to_int(value);
+            self.split_eeprom = self.model.total - Utils.to_int(value);
+        
     def choose_range(self, packet, response, target_count):
         """Choose appropriate trim value mean for next round from challenge
         responses."""

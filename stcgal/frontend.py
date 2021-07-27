@@ -24,6 +24,7 @@ import sys
 import argparse
 import stcgal
 import serial
+from stcgal.models import MCUModelDatabase
 from stcgal.utils import BaudType
 from stcgal.protocols import Stc89Protocol
 from stcgal.protocols import Stc12AProtocol
@@ -107,8 +108,14 @@ class StcGal:
     def program_mcu(self):
         """Execute the standard programming flow."""
 
-        code_size = self.protocol.model.code
-        ee_size = self.protocol.model.eeprom
+        if self.opts.option: self.emit_options(self.opts.option)
+        
+        if self.protocol.split_code and self.protocol.model.name in MCUModelDatabase.MCU_IAP_List:
+            code_size = self.protocol.split_code
+            ee_size = self.protocol.split_eeprom
+        else:
+            code_size = self.protocol.model.code
+            ee_size = self.protocol.model.eeprom
 
         print("Loading flash: ", end="")
         sys.stdout.flush()
@@ -139,8 +146,6 @@ class StcGal:
         # pad to 512 byte boundary
         if len(bindata) % 512:
             bindata += b'\xff' * (512 - len(bindata) % 512)
-
-        if self.opts.option: self.emit_options(self.opts.option)
 
         self.protocol.handshake()
         self.protocol.erase_flash(len(bindata), code_size)
