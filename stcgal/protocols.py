@@ -1874,3 +1874,151 @@ class StcUsb15Protocol(Stc15Protocol):
         if self.dev:
             self.write_packet(0xff)
             print("Disconnected!")
+
+
+class Stc8dProtocol(Stc8Protocol):
+    """Protocol handler for STC8A8K64D4 series"""
+
+    def __init__(self, port, handshake, baud, trim):
+        Stc8Protocol.__init__(self, port, handshake, baud, trim)
+
+    def choose_range(self, packet, response, target_count):
+        """Choose appropriate trim value mean for next round from challenge
+        responses."""
+
+        challenge_data = packet[2:]
+        calib_data = response[2:]
+        calib_len = response[1]
+        if len(calib_data) < 2 * calib_len:
+            raise StcProtocolException("range calibration data missing")
+
+        for i in range(calib_len >> 1):
+            count_a, count_b = struct.unpack(
+                ">HH", calib_data[4 * i: 4 * i + 4])
+            trim_a, trim_b, trim_range = struct.unpack(
+                ">BxBB", challenge_data[4 * i:4 * i + 4])
+            if ((count_a <= target_count and count_b >= target_count)):
+                target_trim = round(
+                    (target_count - count_a) * (trim_b - trim_a) / (count_b - count_a) + trim_a)
+                # target_trim will be set at the center of packet in the 2nd calibration
+                if target_trim < 6 or target_trim > 255 - 5:
+                    raise StcProtocolException("frequency trimming failed")
+                return (target_trim, trim_range)
+
+        return None
+
+    def choose_trim(self, packet, response, target_count):
+        """Choose best trim for given target count from challenge
+        responses."""
+
+        calib_data = response[2:]
+        challenge_data = packet[2:]
+        calib_len = response[1]
+        if len(calib_data) < 2 * calib_len:
+            raise StcProtocolException("trim calibration data missing")
+
+        best = None
+        best_count = sys.maxsize
+        for i in range(calib_len):
+            count, = struct.unpack(">H", calib_data[2 * i: 2 * i + 2])
+            trim_adj, trim_range = struct.unpack(
+                ">BB", challenge_data[2 * i: 2 * i + 2])
+            if abs(count - target_count) < best_count:
+                best_count = abs(count - target_count)
+                best = (trim_adj, trim_range), count
+
+        if not best:
+            raise StcProtocolException("frequency trimming failed")
+
+        return best
+
+    def calibrate(self):
+        """Calibrate selected user frequency frequency and switch to selected baudrate."""
+
+        # handle uncalibrated chips
+        if self.mcu_clock_hz == 0 and self.trim_frequency <= 0:
+            raise StcProtocolException(
+                "uncalibrated, please provide a trim value")
+
+        # determine target counter
+        user_speed = self.trim_frequency
+        if user_speed <= 0:
+            user_speed = self.mcu_clock_hz
+        target_user_count = round(user_speed / self.baud_handshake)
+
+        # calibration, round 1
+        print("Target frequency: ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x00, 0x08])
+        packet += bytes([0x00, 0x00, 0xFF, 0x00])
+        packet += bytes([0x00, 0x10, 0xFF, 0x10])
+        packet += bytes([0x00, 0x20, 0xFF, 0x20])
+        packet += bytes([0x00, 0x30, 0xFF, 0x30])
+
+        self.write_packet(packet)
+        self.pulse(b"\xfe", timeout=1.0)
+        response = self.read_packet()
+        if len(response) < 2 or response[0] != 0x00:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # select ranges and trim values
+        for divider in range(1, 6):
+            user_trim = self.choose_range(
+                packet, response, target_user_count * divider)
+            if user_trim is not None:
+                self.trim_divider = divider
+                break
+        if user_trim is None:
+            raise StcProtocolException("frequency trimming unsuccessful")
+
+        # calibration, round 2
+        packet = bytes([0x00, 0x0C])
+        for i in range(-6, 6):
+            packet += bytes([user_trim[0] + i, user_trim[1]])
+
+        self.write_packet(packet)
+        self.pulse(b"\xfe", timeout=1.0)
+        response = self.read_packet()
+        if len(response) < 2 or response[0] != 0x00:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        # select final values
+        user_trim, user_count = self.choose_trim(
+            packet, response, target_user_count * self.trim_divider)
+        self.trim_value = user_trim
+        self.trim_frequency = round(
+            user_count * self.baud_handshake/self.trim_divider)
+        print("Target %.03f MHz" % (user_speed / 1E6))
+        print("Adjusted frequency: %.03f MHz(%.03f%%)" % (
+            (self.trim_frequency / 1E6), (self.trim_frequency*100/user_speed-100)))
+
+        # switch to programming frequency
+        print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
+        packet = bytes([0x01, 0x00, 0x00])
+        bauds = self.baud_transfer * 4
+        packet += struct.pack(">H", round(65536 - 24E6 / bauds))
+        packet += bytes([user_trim[1], user_trim[0]])
+        # iap_wait = self.get_iap_delay(24E6)
+        iap_wait = 0x98  # iap_wait for "STC8A8K64D4"
+        packet += bytes([iap_wait])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if len(response) < 1 or response[0] != 0x01:
+            raise StcProtocolException("incorrect magic in handshake packet")
+        self.ser.baudrate = self.baud_transfer
+
+    def build_options(self):
+        """Build a packet of option data from the current configuration."""
+
+        msr = self.options.get_msr()
+        packet = 40 * bytearray([0xff])
+        packet[3] = 0x00
+        packet[6] = 0x00
+        packet[22] = 0x00
+        packet[24:28] = struct.pack(">I", self.trim_frequency)
+        packet[28:30] = self.trim_value
+        packet[30] = self.trim_divider
+        packet[32] = msr[0]
+        packet[36:40] = msr[1:5]
+        return bytes(packet)

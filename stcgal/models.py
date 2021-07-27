@@ -175,6 +175,7 @@ class MCUModelDatabase:
         MCUModel(name='STC8A8K56S4A12', magic=0xf627, total=65536, code=57344, eeprom=8192),
         MCUModel(name='STC8A8K60S4A12', magic=0xf629, total=65536, code=61440, eeprom=4096),
         MCUModel(name='STC8A8K64S4A12', magic=0xf628, total=65536, code=65024, eeprom=512),
+        MCUModel(name='STC8A8K64D4', magic=0xf7f4,total=65536, code=65024, eeprom=512),
         MCUModel(name='STC15H4K08S4', magic=0xf601, total=65536, code=8192, eeprom=57344),
         MCUModel(name='STC15H4K16S4', magic=0xf602, total=65536, code=16384, eeprom=49152),
         MCUModel(name='STC15H4K24S4', magic=0xf603, total=65536, code=24576, eeprom=40960),

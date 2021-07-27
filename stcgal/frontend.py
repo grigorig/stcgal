@@ -33,6 +33,7 @@ from stcgal.protocols import Stc15Protocol
 from stcgal.protocols import Stc15AProtocol
 from stcgal.protocols import StcUsb15Protocol
 from stcgal.protocols import Stc8Protocol
+from stcgal.protocols import Stc8dProtocol
 from stcgal.protocols import StcAutoProtocol
 from stcgal.protocols import StcProtocolException
 from stcgal.protocols import StcFramingException
@@ -63,6 +64,9 @@ class StcGal:
                                           round(opts.trim * 1000))
         elif opts.protocol == "stc8":
             self.protocol = Stc8Protocol(opts.port, opts.handshake, opts.baud,
+                                         round(opts.trim * 1000))
+        elif opts.protocol == "stc8d":
+            self.protocol = Stc8dProtocol(opts.port, opts.handshake, opts.baud,
                                          round(opts.trim * 1000))
         elif opts.protocol == "usb15":
             self.protocol = StcUsb15Protocol()
@@ -242,7 +246,7 @@ def cli():
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
     parser.add_argument("-r", "--resetcmd",  help="shell command for board power-cycling (instead of DTR assertion)", action="store")
     parser.add_argument("-P", "--protocol", help="protocol version (default: auto)",
-                        choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "usb15", "auto"], default="auto")
+                        choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "stc8d", "usb15", "auto"], default="auto")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
     parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
