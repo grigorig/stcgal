@@ -33,6 +33,8 @@ from stcgal.protocols import Stc15Protocol
 from stcgal.protocols import Stc15AProtocol
 from stcgal.protocols import StcUsb15Protocol
 from stcgal.protocols import Stc8Protocol
+from stcgal.protocols import Stc8dProtocol
+from stcgal.protocols import Stc8gProtocol
 from stcgal.protocols import StcAutoProtocol
 from stcgal.protocols import StcProtocolException
 from stcgal.protocols import StcFramingException
@@ -43,6 +45,8 @@ class StcGal:
 
     def __init__(self, opts):
         self.opts = opts
+        self.hexFileType = 8
+        self.linearBaseAddress = 0
         self.initialize_protocol(opts)
 
     def initialize_protocol(self, opts):
@@ -56,14 +60,19 @@ class StcGal:
         elif opts.protocol == "stc12":
             self.protocol = Stc12Protocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc15a":
-            self.protocol = Stc15AProtocol(opts.port, opts.handshake, opts.baud,
-                                           round(opts.trim * 1000))
+            self.protocol = Stc15AProtocol(opts.port, opts.handshake, opts.baud, round(opts.trim * 1000))
         elif opts.protocol == "stc15":
-            self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud,
-                                          round(opts.trim * 1000))
+            self.protocol = Stc15Protocol(opts.port, opts.handshake, opts.baud, round(opts.trim * 1000))
         elif opts.protocol == "stc8":
-            self.protocol = Stc8Protocol(opts.port, opts.handshake, opts.baud,
-                                         round(opts.trim * 1000))
+            self.protocol = Stc8Protocol(opts.port, opts.handshake, opts.baud, round(opts.trim * 1000))
+        elif opts.protocol == "stc8d":
+            self.protocol = Stc8dProtocol(opts.port, opts.handshake, opts.baud, round(opts.trim * 1000))
+        elif opts.protocol == "stc8g":
+            """FIXME Ugly hack, but works until I fully implement the STC8G protocol"""
+            if opts.trim < 27360:
+                self.protocol = Stc8dProtocol(opts.port, opts.handshake, opts.baud, round(opts.trim * 1000))
+            else:
+                self.protocol = Stc8gProtocol(opts.port, opts.handshake, opts.baud, round(opts.trim * 1000))
         elif opts.protocol == "usb15":
             self.protocol = StcUsb15Protocol()
         else:
@@ -90,6 +99,8 @@ class StcGal:
                 fname.endswith(".ihex")):
             try:
                 hexfile = IHex.read(fileobj)
+                self.hexFileType = hexfile.get_mode()
+                self.linearBaseAddress = hexfile.get_linearBaseAddress()
                 binary = hexfile.extract_data()
                 print("%d bytes (Intel HEX)" %len(binary))
                 return binary
@@ -103,45 +114,57 @@ class StcGal:
     def program_mcu(self):
         """Execute the standard programming flow."""
 
-        code_size = self.protocol.model.code
-        ee_size = self.protocol.model.eeprom
+        if self.opts.option: self.emit_options(self.opts.option)
+
+        if self.protocol.split_code and self.protocol.model.iap:
+            code_size = self.protocol.split_code
+            ee_size = self.protocol.split_eeprom
+        else:
+            code_size = self.protocol.model.code
+            ee_size = self.protocol.model.eeprom
 
         print("Loading flash: ", end="")
         sys.stdout.flush()
         bindata = self.load_file_auto(self.opts.code_image)
+        
+        if self.protocol.model.mcs251 and self.hexFileType != 32:
+            print("Invalid input file. MCU is an MCS-251, input file MUST specify a linear", file=sys.stderr)
+            print("base address, i.e. contain a type 04 record. More information at:", file=sys.stderr)
+            print("https://en.wikipedia.org/wiki/Intel_HEX", file=sys.stderr)
+        else:
+            self.protocol.linearBaseAddress = self.linearBaseAddress
 
-        # warn if it overflows
-        if len(bindata) > code_size:
-            print("WARNING: code_image overflows into eeprom segment!", file=sys.stderr)
-        if len(bindata) > (code_size + ee_size):
-            print("WARNING: code_image truncated!", file=sys.stderr)
-            bindata = bindata[0:code_size + ee_size]
+            # warn if it overflows
+            if len(bindata) > code_size:
+                print("WARNING: code_image overflows into eeprom segment!", file=sys.stderr)
+            if len(bindata) > (code_size + ee_size):
+                print("WARNING: code_image truncated!", file=sys.stderr)
+                bindata = bindata[0:code_size + ee_size]
 
-        # add eeprom data if supplied
-        if self.opts.eeprom_image:
-            print("Loading EEPROM: ", end="")
-            sys.stdout.flush()
-            eedata = self.load_file_auto(self.opts.eeprom_image)
-            if len(eedata) > ee_size:
-                print("WARNING: eeprom_image truncated!", file=sys.stderr)
-                eedata = eedata[0:ee_size]
-            if len(bindata) < code_size:
-                bindata += bytes([0xff] * (code_size - len(bindata)))
-            elif len(bindata) > code_size:
-                print("WARNING: eeprom_image overlaps code_image!", file=sys.stderr)
-                bindata = bindata[0:code_size]
-            bindata += eedata
+            # add eeprom data if supplied
+            if self.opts.eeprom_image:
+                print("Loading EEPROM: ", end="")
+                sys.stdout.flush()
+                eedata = self.load_file_auto(self.opts.eeprom_image)
+                if len(eedata) > ee_size:
+                    print("WARNING: eeprom_image truncated!", file=sys.stderr)
+                    eedata = eedata[0:ee_size]
+                if len(bindata) < code_size:
+                    bindata += bytes([0xff] * (code_size - len(bindata)))
+                elif len(bindata) > code_size:
+                    print("WARNING: eeprom_image overlaps code_image!", file=sys.stderr)
+                    bindata = bindata[0:code_size]
+                bindata += eedata
 
-        # pad to 512 byte boundary
-        if len(bindata) % 512:
-            bindata += b'\xff' * (512 - len(bindata) % 512)
+            # pad to 512 byte boundary
+            if len(bindata) % 512:
+                bindata += b'\xff' * (512 - len(bindata) % 512)
 
-        if self.opts.option: self.emit_options(self.opts.option)
-
-        self.protocol.handshake()
-        self.protocol.erase_flash(len(bindata), code_size)
-        self.protocol.program_flash(bindata)
-        self.protocol.program_options()
+            self.protocol.handshake()
+            self.protocol.erase_flash(len(bindata), code_size)
+            self.protocol.program_flash(bindata)
+            self.protocol.program_options()
+        
         self.protocol.disconnect()
 
     def erase_mcu(self):
@@ -161,7 +184,7 @@ class StcGal:
             return 0
 
         try:
-            self.protocol.connect(autoreset=self.opts.autoreset, resetcmd=self.opts.resetcmd)
+            self.protocol.connect(autoreset=self.opts.autoreset, resetcmd=self.opts.resetcmd, resetpin=self.opts.resetpin)
             if isinstance(self.protocol, StcAutoProtocol):
                 if not self.protocol.protocol_name:
                     raise StcProtocolException("cannot detect protocol")
@@ -240,11 +263,13 @@ def cli():
     parser.add_argument("eeprom_image", help="eeprom segment file to flash (BIN/HEX)", type=argparse.FileType("rb"), nargs='?')
     exclusives.add_argument("-e", "--erase", help="only erase flash memory", action="store_true")
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
+    parser.add_argument("-A", "--resetpin", help="pin to hold down when using --autoreset (default: DTR)",
+                        choices=["dtr", "rts"], default="dtr")
     parser.add_argument("-r", "--resetcmd",  help="shell command for board power-cycling (instead of DTR assertion)", action="store")
     parser.add_argument("-P", "--protocol", help="protocol version (default: auto)",
-                        choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "usb15", "auto"], default="auto")
+                        choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "stc8d", "stc8g", "usb15", "auto"], default="auto")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
-    parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=19200)
+    parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=115200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
     parser.add_argument("-o", "--option", help="set option (can be used multiple times, see documentation)", action="append")
     parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15+ series only)", type=float, default=0.0)
