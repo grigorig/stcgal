@@ -46,7 +46,6 @@ class StcGal:
     def __init__(self, opts):
         self.opts = opts
         self.hexFileType = 8
-        self.linearBaseAddress = 0
         self.initialize_protocol(opts)
 
     def initialize_protocol(self, opts):
@@ -100,7 +99,6 @@ class StcGal:
             try:
                 hexfile = IHex.read(fileobj)
                 self.hexFileType = hexfile.get_mode()
-                self.linearBaseAddress = hexfile.get_linearBaseAddress()
                 binary = hexfile.extract_data()
                 print("%d bytes (Intel HEX)" %len(binary))
                 return binary
@@ -132,8 +130,6 @@ class StcGal:
             print("base address, i.e. contain a type 04 record. More information at:", file=sys.stderr)
             print("https://en.wikipedia.org/wiki/Intel_HEX", file=sys.stderr)
         else:
-            self.protocol.linearBaseAddress = self.linearBaseAddress
-
             # warn if it overflows
             if len(bindata) > code_size:
                 print("WARNING: code_image overflows into eeprom segment!", file=sys.stderr)

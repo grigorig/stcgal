@@ -1911,7 +1911,7 @@ class Stc8dProtocol(Stc8Protocol):
 
     def set_option(self, name, value):
         super().set_option(name, value)
-        if name=='program_eeprom_split':
+        if name == 'program_eeprom_split':
             split_point = Utils.to_int(value);
 
             if self.model.mcs251:
