@@ -190,10 +190,9 @@ typedef struct {
 #define NO_MATCH -1
 #define FOUND -2
 
-/*
 // May help to guess the meaning of new flags as they are added.
 
-void toBits(uint32_t n, char *result) {
+static void toBits(uint32_t n, char *result) {
 	*result = '\0';
 	int pos = 0;
 	
@@ -210,35 +209,39 @@ void toBits(uint32_t n, char *result) {
 	}
 }
 
-static void printCSVHeader() {
-	printf("name,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,flags (hex),mcuId,flashSize,eepromSize,eepromStartAddr,totalSize,unknown2\n");
+static void printCSVHeader(FILE *csvFile) {
+	if (csvFile != NULL) {
+		fprintf(csvFile, "name,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,flags (hex),mcuId,flashSize,eepromSize,eepromStartAddr,totalSize,unknown2\n");
+	}
 }
 
-static void printCSVRow(const MCUInfo *info, const char *name) {
+static void printCSVRow(FILE *csvFile, const MCUInfo *info, const char *name) {
 	char flags[64];
 	
-	toBits(info->flags, flags);
-	
-	printf(
-		"%s,%s,0x%08x,0x%04x,%u,%u,0x%08x,%u,0x%08x\n",
-		name, 
-		flags, 
-		info->flags, 
-		(uint16_t) info->mcuId, 
-		info->flashSize, 
-		info->eepromSize, 
-		info->eepromStartAddr, 
-		info->totalSize, 
-		info->unknown2
-	);
+	if (csvFile != NULL) {
+		toBits(info->flags, flags);
+		
+		fprintf(
+			csvFile, 
+			"%s,%s,0x%08x,0x%04x,%u,%u,0x%08x,%u,0x%08x\n",
+			name, 
+			flags, 
+			info->flags, 
+			(uint16_t) info->mcuId, 
+			info->flashSize, 
+			info->eepromSize, 
+			info->eepromStartAddr, 
+			info->totalSize, 
+			info->unknown2
+		);
+	}
 }
-*/
 
 static const char *toBool(uint32_t flags, uint32_t mask) {
 	return (flags & mask) ? "True" : "False";
 }
 
-static void printMCU(const MCUInfo *info, const char *name) {
+static void printMCUModel(const MCUInfo *info, const char *name) {
 	printf(
 		"    MCUModel(name='%s', magic=0x%04x, total=%u, code=%u, eeprom=%u, iap=%s, calibrate=%s, mcs251=%s),\n",
 		name, 
@@ -252,6 +255,18 @@ static void printMCU(const MCUInfo *info, const char *name) {
 	);
 }
 
+static void printUsage(const char *pgmName) {
+	printf("Usage: %s <STC-ISP_executable> [<CSV_output_file>]\n", pgmName);
+	printf("\n");
+	printf("- STC-ISP_executable is the file from which MCU models must be extracted.\n");
+	printf("Their list will be printed on the standard output.\n");
+	printf("\n");
+	printf("- The optional CSV_output_file will receive the MCU flags detail of each model\n");
+	printf("to facilitate reverse engineering efforts.\n");
+	printf("\n");
+	printf("Example: %s stc-isp-v6.91Q.exe MCUFlags.csv > MCUModels.txt\n", pgmName);
+}
+
 int main(int argc, const char **argv) {
 	int rc = 1;
 	MCUInfo *infoTable = NULL;
@@ -263,9 +278,21 @@ int main(int argc, const char **argv) {
 	uint32_t nameTableEndOffset = 0;
 	uint32_t baseAddr = 0;
 	int nameTableSize = 0;
+	
+	if (argc < 2) {
+		fprintf(stderr, "ERROR: missing argument\n");
+		printUsage(argv[0]);
+		exit(1);
+	}
+	
 	FILE *exeFile = fopen(argv[1], "rb");
+	FILE *csvFile = NULL;
 	
 	if (exeFile != NULL) {
+		if (argc > 2) {
+			csvFile = fopen(argv[2], "wt");
+		}
+		
 		rc = 2;
 		uint8_t *buffer = (uint8_t *) malloc(SEARCH_BUFFER_LEN);
 		
@@ -431,7 +458,7 @@ int main(int argc, const char **argv) {
 	}
 	
 	if (rc == 0) {
-		//printCSVHeader();
+		printCSVHeader(csvFile);
 		
 		for (int mcu = 0; mcu < mcuCount; mcu++) {
 			const char *mcuName = &nameTable[infoTable[mcu].nameAddr - baseAddr];
@@ -441,12 +468,16 @@ int main(int argc, const char **argv) {
 				infoTable[mcu].eepromSize = 12 * 1024;
 			}
 			
-			//printCSVRow(&infoTable[mcu], mcuName);
-			printMCU(&infoTable[mcu], mcuName);
+			printCSVRow(csvFile, &infoTable[mcu], mcuName);
+			printMCUModel(&infoTable[mcu], mcuName);
 		}
 		
 		free(infoTable);
 		free(nameTable);
+	}
+	
+	if (csvFile != NULL) {
+		fclose(csvFile);
 	}
 	
 	return rc;
