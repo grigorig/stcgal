@@ -14,7 +14,6 @@ class IHex:
         """Read Intel HEX data from string or lines"""
         ihex = cls()
 
-        segbase = 0
         for line in lines:
             line = line.strip()
             if not line:
@@ -22,14 +21,14 @@ class IHex:
 
             t, a, d = ihex.parse_line(line)
             if t == 0x00:
-                ihex.insert_data(segbase + a, d)
+                ihex.insert_data(a, d)
 
             elif t == 0x01:
                 break  # Should we check for garbage after this?
 
             elif t == 0x02:
                 ihex.set_mode(16)
-                segbase = struct.unpack(">H", d[0:2])[0] << 4
+                ihex.linearBaseAddress = struct.unpack(">H", d[0:2])[0] << 4
 
             elif t == 0x03:
                 ihex.set_mode(16)
@@ -39,7 +38,7 @@ class IHex:
 
             elif t == 0x04:
                 ihex.set_mode(32)
-                segbase = struct.unpack(">H", d[0:2])[0] << 16
+                ihex.linearBaseAddress = struct.unpack(">H", d[0:2])[0] << 16
 
             elif t == 0x05:
                 ihex.set_mode(32)
@@ -63,6 +62,7 @@ class IHex:
         self.start = None
         self.mode = 8
         self.row_bytes = 16
+        self.linearBaseAddress = 0
 
     def set_row_bytes(self, row_bytes):
         """Set output hex file row width (bytes represented per row)."""
@@ -104,6 +104,12 @@ class IHex:
 
     def set_mode(self, mode):
         self.mode = mode
+
+    def get_mode(self):
+        return self.mode
+        
+    def get_linearBaseAddress(self):
+        return self.linearBaseAddress
 
     def get_area(self, addr):
         for start, data in self.areas.items():
@@ -192,6 +198,7 @@ class IHex:
                     if newsegbase != segbase:
                         output += self.make_line(
                             0x04, 0, struct.pack(">H", newsegbase))
+                        segbase = newsegbase
                         segbase = newsegbase
 
                 output += self.make_line(0x00, addr, chunk)

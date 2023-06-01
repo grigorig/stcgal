@@ -99,7 +99,7 @@ class TestProgramFuzzed(unittest.TestCase):
     def single_fuzz(self, yml, serial_mock, fuzzer, read_mock, err, out, sleep_mock, write_mock):
         """Test a single programming cycle with fuzzing"""
         with open(yml) as test_file:
-            test_data = yaml.load(test_file.read())
+            test_data = yaml.load(test_file.read(), Loader=yaml.SafeLoader)
             for _ in range(1000):
                 with self.subTest():
                     opts = get_default_opts()
