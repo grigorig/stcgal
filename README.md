@@ -22,7 +22,7 @@ suitable for automation.
 Features
 --------
 
-* Support for STC 89/90/10/11/12/15/8 series
+* Support for STC 89/90/10/11/12/15/8/32 series
 * UART and USB BSL support
 * Display part info
 * Determine operating frequency
