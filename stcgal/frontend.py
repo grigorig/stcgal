@@ -26,6 +26,7 @@ import stcgal
 import serial
 from stcgal.utils import BaudType
 from stcgal.protocols import Stc89Protocol
+from stcgal.protocols import Stc89AProtocol
 from stcgal.protocols import Stc12AProtocol
 from stcgal.protocols import Stc12BProtocol
 from stcgal.protocols import Stc12Protocol
@@ -52,6 +53,8 @@ class StcGal:
         """Initialize protocol backend"""
         if opts.protocol == "stc89":
             self.protocol = Stc89Protocol(opts.port, opts.handshake, opts.baud)
+        elif opts.protocol == "stc89a":
+            self.protocol = Stc89AProtocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc12a":
             self.protocol = Stc12AProtocol(opts.port, opts.handshake, opts.baud)
         elif opts.protocol == "stc12b":

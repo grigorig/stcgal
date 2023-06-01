@@ -628,6 +628,239 @@ class Stc89Protocol(StcBaseProtocol):
         print("done")
 
 
+class Stc89AProtocol(StcBaseProtocol):
+    """Protocol handler for STC 89/90 series"""
+
+    PARITY = serial.PARITY_NONE
+    """Parity configuration - these don't use any parity"""
+
+    PROGRAM_BLOCKSIZE = 128
+    """block size for programming flash"""
+
+    def __init__(self, port, baud_handshake, baud_transfer):
+        StcBaseProtocol.__init__(self, port, baud_handshake, baud_transfer)
+
+        self.cpu_6t = None
+
+    def extract_payload(self, packet):
+        """Verify the checksum of packet and return its payload"""
+
+        packet_csum = packet[-2] + (packet[-3] << 8)
+        calc_csum = sum(packet[2:-3]) & 0xffff
+        if packet_csum != calc_csum:
+            self.dump_packet(packet)
+            raise StcFramingException("packet checksum mismatch")
+
+        payload = StcBaseProtocol.extract_payload(self, packet)
+        return payload[:-1]
+
+    def write_packet(self, packet_data):
+        """Send packet to MCU.
+
+        Constructs a packet with supplied payload and sends it to the MCU.
+        """
+
+        # frame start and direction magic
+        packet = bytes()
+        packet += self.PACKET_START
+        packet += self.PACKET_HOST
+
+        # packet length and payload
+        packet += struct.pack(">H", len(packet_data) + 6)
+        packet += packet_data
+
+        # checksum and end code
+        packet += struct.pack(">H", sum(packet[2:]) & 0xffff)
+        packet += self.PACKET_END
+
+        self.dump_packet(packet, receive=False)
+        self.ser.write(packet)
+        self.ser.flush()
+
+    def get_status_packet(self):
+        """Read and decode status packet"""
+
+        status_packet = self.read_packet()
+        if status_packet[0] != 0x50:
+            raise StcProtocolException("incorrect magic in status packet" + str(status_packet[0]))
+        return status_packet
+
+    def initialize_options(self, status_packet):
+        """Initialize options"""
+
+        if len(status_packet) < 20:
+            raise StcProtocolException("invalid options in status packet")
+        self.options = Stc89Option(status_packet[1])
+        self.options.print()
+
+        self.ser.parity = "E"
+
+    def calculate_baud(self):
+        """Calculate MCU baudrate setting.
+
+        Calculate appropriate baudrate settings for the MCU's UART,
+        according to clock frequency and requested baud rate.
+        """
+
+        # timing is different in 6T mode
+        sample_rate = 32 #if self.cpu_6t else 32
+        # baudrate is directly controlled by programming the MCU's BRT register
+        brt = 65536 - round((self.mcu_clock_hz) / (self.baud_transfer * sample_rate))
+        
+        baud_actual = (self.mcu_clock_hz) / (sample_rate * (65536 - brt))
+        baud_error = (abs(self.baud_transfer - baud_actual) * 100.0) / self.baud_transfer
+        if baud_error > 5.0:
+            print("WARNING: baudrate error is %.2f%%. You may need to set a slower rate." %
+                  baud_error, file=sys.stderr)
+
+        # IAP wait states (according to datasheet(s))
+        iap_wait = 0x80
+        if self.mcu_clock_hz < 10E6: iap_wait = 0x83
+        elif self.mcu_clock_hz < 30E6: iap_wait = 0x82
+        elif self.mcu_clock_hz < 50E6: iap_wait = 0x81
+
+        # MCU delay after switching baud rates
+        delay = 0xa0
+
+        return brt, iap_wait
+
+    def initialize_status(self, status_packet):
+        """Decode status packet and store basic MCU info"""
+
+        self.cpu_6t = not bool(status_packet[1] & 1)
+
+        freq_counter = struct.unpack(">H", status_packet[13:15])[0]
+        self.mcu_clock_hz = (12 * freq_counter * self.baud_handshake)
+
+        bl_version, bl_stepping = struct.unpack("BB", status_packet[17:19])
+        bl_minor = status_packet[22] & 0x0f
+        self.mcu_bsl_version = "%d.%d.%d%s" % (bl_version >> 4, bl_version & 0x0f,
+                                               bl_minor, chr(bl_stepping))
+
+    def handshake(self):
+        """Switch to transfer baudrate
+
+        Switches to transfer baudrate and verifies that the setting works with
+        a ping-pong exchange of packets."""
+
+        # check new baudrate
+        print("Switching to %d baud: " % self.baud_transfer, end="")
+        sys.stdout.flush()
+        brt,iap = self.calculate_baud()
+        print("checking ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x01])
+        packet += struct.pack(">H", brt)
+        packet += bytes([iap])
+        self.write_packet(packet)
+        time.sleep(0.2)
+        print(self.baud_transfer)
+        response = self.read_packet()
+        
+        if response[0] != 0x01:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        self.ser.baudrate = self.baud_transfer
+
+        # ping-pong test
+        print("testing ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x05, 0x00, 0x00, 0x46, 0xB9])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x05:
+            raise StcProtocolException("incorrect magic in handshake packet")
+
+        print("done")
+
+    def reset_device(self, resetcmd=False):
+        if not resetcmd:
+            print("Cycling power: ", end="")
+            sys.stdout.flush()
+            self.ser.setDTR(False)
+            time.sleep(0.5)
+            self.ser.setDTR(True)
+            print("done")
+        else:
+            print("Cycling power via shell cmd: " + resetcmd)
+            os.system(resetcmd)
+
+        print("Waiting for MCU: ", end="")
+        sys.stdout.flush()
+
+    def erase_flash(self, erase_size, _):
+        """Erase the MCU's flash memory.
+
+        Erase the flash memory with a block-erase command.
+        flash_size is ignored; not used on STC 89 series.
+        """
+
+        print("Erasing All blocks: ", end="")
+        sys.stdout.flush()
+        packet = bytes([0x03, 0x00, 0x00, 0x46, 0xB9])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x03:
+            raise StcProtocolException("incorrect magic in erase packet")
+
+        print("MCU ID: {:x}{:x}{:x}{:x}{:x}{:x}{:x}".format(response[1],response[2],response[3]
+        ,response[4],response[5],response[6],response[7]))
+
+        print("done")
+
+    def program_flash(self, data):
+        """Program the MCU's flash memory.
+
+        Write data into flash memory, using the PROGRAM_BLOCKSIZE
+        as the block size (depends on MCU's RAM size).
+        """
+        p = 0
+
+        for i in range(0, len(data), self.PROGRAM_BLOCKSIZE):
+            packet = bytes(3)
+            if p == 0:
+                packet = bytes([0x22,0x00,0x00])
+            else:
+                packet = bytes([0x02])
+                packet += int(128 * p).to_bytes(length=2, byteorder='big', signed=True)
+
+            
+            p = p + 1
+            packet += bytes([0x46, 0xB9])
+            packet += data[i:i+self.PROGRAM_BLOCKSIZE]
+            
+            self.write_packet(packet)
+
+            response = self.read_packet()
+            if len(response) < 1 or response[0] != 0x02:
+                raise StcProtocolException("incorrect magic in write packet")
+
+            self.progress_cb(i, self.PROGRAM_BLOCKSIZE, len(data))
+        self.progress_cb(len(data), self.PROGRAM_BLOCKSIZE, len(data))
+
+    def program_options(self):
+        """Program option byte into flash"""
+
+        print("Setting options: ")
+        sys.stdout.flush()
+        msr = self.options.get_msr()
+        packet = bytes([0x04,0x00,0x00,0x46,0xB9, msr])
+        self.write_packet(packet)
+        response = self.read_packet()
+        if response[0] != 0x04:
+            raise StcProtocolException("incorrect magic in option packet")
+        print("done")
+    
+    def disconnect(self):
+        """Disconnect from MCU"""
+
+        # reset mcu
+        packet = bytes([0xFF])
+        self.write_packet(packet)
+        self.ser.close()
+        print("Disconnected!")
+
+
 class Stc12AOptionsMixIn:
     def program_options(self):
         print("Setting options: ", end="")
