@@ -266,9 +266,9 @@ def cli():
                         choices=["dtr", "rts"], default="dtr")
     parser.add_argument("-r", "--resetcmd",  help="shell command for board power-cycling (instead of DTR assertion)", action="store")
     parser.add_argument("-P", "--protocol", help="protocol version (default: auto)",
-                        choices=["stc89", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "stc8d", "stc8g", "usb15", "auto"], default="auto")
+                        choices=["stc89", "stc89a", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "stc8d", "stc8g", "usb15", "auto"], default="auto")
     parser.add_argument("-p", "--port", help="serial port device", default="/dev/ttyUSB0")
-    parser.add_argument("-b", "--baud", help="transfer baud rate (default: 19200)", type=BaudType(), default=115200)
+    parser.add_argument("-b", "--baud", help="transfer baud rate (default: 115200)", type=BaudType(), default=115200)
     parser.add_argument("-l", "--handshake", help="handshake baud rate (default: 2400)", type=BaudType(), default=2400)
     parser.add_argument("-o", "--option", help="set option (can be used multiple times, see documentation)", action="append")
     parser.add_argument("-t", "--trim", help="RC oscillator frequency in kHz (STC15+ series only)", type=float, default=0.0)

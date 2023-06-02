@@ -14,13 +14,13 @@ Last modified time: June 8, 2020
 使用 ```-h``` 调用stcgal以获取使用信息。（'//'后面是翻译，实际使用过程中没有后面内容）
 
 ```
-usage: stcgal.py [-h] [-a] [-r RESETCMD]
-                 [-P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}]
-                 [-p PORT] [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
-                 [-V]
-                 [code_image] [eeprom_image]
+usage: stcgal [-h] [-e] [-a] [-A {dtr,rts}] [-r RESETCMD]
+              [-P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,stc8d,stc8g,usb15,auto}]
+              [-p PORT] [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
+              [-V]
+              [code_image] [eeprom_image]
 
-stcgal 1.5 - an STC MCU ISP flash tool
+stcgal 1.7 - an STC MCU ISP flash tool
 (C) 2014-2018 Grigori Goronzy and others
 https://github.com/grigorig/stcgal
 
@@ -31,13 +31,15 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit           //显示此帮助消息并退出
   -a, --autoreset       cycle power automatically by asserting DTR//断言DTR自动重启电源
+  -A {dtr,rts}, --resetpin {dtr,rts}
+                        pin to hold down when using --autoreset (default: DTR)
   -r RESETCMD, --resetcmd RESETCMD
                         shell command for board power-cycling (instead of DTR //用于板上电重启的shell命令（而不是DTR断言）
                         assertion)
-  -P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}, --protocol {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}
+  -P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,stc8d,stc8g,usb15,auto}, --protocol {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,stc8d,stc8g,usb15,auto}
                         protocol version (default: auto)          //协议版本（芯片系列）（在默认状态为auto）
   -p PORT, --port PORT  serial port device                        //串口设备
-  -b BAUD, --baud BAUD  transfer baud rate (default: 19200)       //传输波特率（默认值：19200）
+  -b BAUD, --baud BAUD  transfer baud rate (default: 115200)      //传输波特率（默认值：115200）
   -l HANDSHAKE, --handshake HANDSHAKE
                         handshake baud rate (default: 2400)       //握手波特率（默认值：2400）
   -o OPTION, --option OPTION
@@ -50,6 +52,11 @@ optional arguments:
 
 最重要的是， ```-p``` 设置用于编程的串行端口。
 
+### 传输波特率
+
+所有从 STC15 系列开始的 MCU 都支持默认值 115200 波特，至少是之前的 STC12C5A56S2。
+对于较旧的 MCU，您可能必须使用 ```-b 19200``` 才能正确操作。
+
 ### 通讯协议与规定
 
 STC MCU对BSL使用各种相关但不兼容的协议。协议可以用```-P``` 标志来指定。
@@ -57,12 +64,15 @@ STC MCU对BSL使用各种相关但不兼容的协议。协议可以用```-P``` �
 
 * ```auto``` 自动检测基于UART的协议（默认）
 * ```stc89``` STC89/90 系列 
+* ```stc89a``` STC89/90 系列（BSL 7.2.5C）
 * ```stc12a``` STC12x052 系列和其他类似系列
 * ```stc12b``` STC12x52 系列, STC12x56 系列和其他类似系列
 * ```stc12``` 多数 STC10/11/12 系列
 * ```stc15a``` STC15x104E 和 STC15x204E(A) 系列
 * ```stc15``` 多数 STC15 系列
-* ```stc8``` STC8 系列 
+* ```stc8``` STC8A8K64S4A12 和 STC8F 系列
+* ```stc8d``` 所有 STC8 和 STC32 系列
+* ```stc8g``` STC8G1 和 STC8H1 系列
 * ```usb15``` 支持USB的STC15W4系列
 
 doc / reverse-engineering子目录中的文本文件提供了BSL使用的反向工程协议的概述。
