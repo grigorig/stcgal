@@ -391,7 +391,7 @@ class StcAutoProtocol(StcBaseProtocol):
                              ("stc15a", r"(STC|IAP)15[FL][012]0\d(E|EA|)$"),
                              ("stc15", r"(STC|IAP|IRC)15\D"),
                              ("stc8d", r"STC8H(3|4|8)K"),
-                             ("stc8d", r"STC32G"),
+                             ("stc8d", r"STC32"),
                              ("stc8d", r"STC8A8K\d\dD4"),
                              ("stc8g", r"STC8H"),
                              ("stc8g", r"STC8G"),
