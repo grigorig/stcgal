@@ -4,13 +4,13 @@ Usage
 Call stcgal with ```-h``` for usage information.
 
 ```
-usage: stcgal.py [-h] [-a] [-r RESETCMD]
-                 [-P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}]
-                 [-p PORT] [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
-                 [-V]
-                 [code_image] [eeprom_image]
+usage: stcgal [-h] [-e] [-a] [-A {dtr,rts}] [-r RESETCMD]
+              [-P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,stc8d,stc8g,usb15,auto}]
+              [-p PORT] [-b BAUD] [-l HANDSHAKE] [-o OPTION] [-t TRIM] [-D]
+              [-V]
+              [code_image] [eeprom_image]
 
-stcgal 1.5 - an STC MCU ISP flash tool
+stcgal 1.7 - an STC MCU ISP flash tool
 (C) 2014-2018 Grigori Goronzy and others
 https://github.com/grigorig/stcgal
 
@@ -18,16 +18,19 @@ positional arguments:
   code_image            code segment file to flash (BIN/HEX)
   eeprom_image          eeprom segment file to flash (BIN/HEX)
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
+  -e, --erase           only erase flash memory
   -a, --autoreset       cycle power automatically by asserting DTR
+  -A {dtr,rts}, --resetpin {dtr,rts}
+                        pin to hold down when using --autoreset (default: DTR)
   -r RESETCMD, --resetcmd RESETCMD
                         shell command for board power-cycling (instead of DTR
                         assertion)
-  -P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}, --protocol {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,usb15,auto}
+  -P {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,stc8d,stc8g,usb15,auto}, --protocol {stc89,stc12a,stc12b,stc12,stc15a,stc15,stc8,stc8d,stc8g,usb15,auto}
                         protocol version (default: auto)
   -p PORT, --port PORT  serial port device
-  -b BAUD, --baud BAUD  transfer baud rate (default: 19200)
+  -b BAUD, --baud BAUD  transfer baud rate (default: 115200)
   -l HANDSHAKE, --handshake HANDSHAKE
                         handshake baud rate (default: 2400)
   -o OPTION, --option OPTION
@@ -40,6 +43,12 @@ optional arguments:
 
 Most importantly, ```-p``` sets the serial port to be used for programming.
 
+### Transfer baud rate
+
+The default value of 115200 Baud is supported by all MCU starting with
+the STC15 family, and at least the STC12C5A56S2 before that. For older
+MCU, you might have to use ```-b 19200``` for correct operation.
+
 ### Protocols
 
 STC MCUs use a variety of related but incompatible protocols for the
@@ -49,12 +58,15 @@ and MCU series is as follows:
 
 * ```auto``` Automatic detection of UART based protocols (default)
 * ```stc89``` STC89/90 series
+* ```stc89a``` STC89/90 series (BSL 7.2.5C)
 * ```stc12a``` STC12x052 series and possibly others
 * ```stc12b``` STC12x52 series, STC12x56 series and possibly others
 * ```stc12``` Most STC10/11/12 series
 * ```stc15a``` STC15x104E and STC15x204E(A) series
 * ```stc15``` Most STC15 series
-* ```stc8``` STC8 series
+* ```stc8``` STC8A8K64S4A12 and STC8F series
+* ```stc8d``` All STC8 and STC32 series
+* ```stc8g``` STC8G1 and STC8H1 series
 * ```usb15``` USB support on STC15W4 series
 
 The text files in the doc/reverse-engineering subdirectory provide an
