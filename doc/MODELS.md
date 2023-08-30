@@ -44,6 +44,7 @@ STC8 series
 * STC8G1K17-20/16PIN (BSL version: 7.3.12U)
 * STC8G2K64S4 (BSL version: 7.3.11U)
 * STC8H1K08 (BSL version: 7.3.12U)
+* STC8H1K17T (BSL version: 7.4.5U)
 * STC8H3K64S2 (BSL version: 7.4.1U)
 * STC8H3K64S4 (BSL version: 7.4.1U)
 * STC8H4K64TL (BSL version: 7.4.3U)
