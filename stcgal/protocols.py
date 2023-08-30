@@ -390,11 +390,11 @@ class StcAutoProtocol(StcBaseProtocol):
                              ("stc12", r"(STC|IAP)(10|11|12)\D"),
                              ("stc15a", r"(STC|IAP)15[FL][012]0\d(E|EA|)$"),
                              ("stc15", r"(STC|IAP|IRC)15\D"),
-                             ("stc8d", r"STC8H(3|4|8)K"),
-                             ("stc8d", r"STC32"),
-                             ("stc8d", r"STC8A8K\d\dD4"),
-                             ("stc8g", r"STC8H"),
+                             ("stc8g", r"STC8H1K\d\d$"),
                              ("stc8g", r"STC8G"),
+                             ("stc8d", r"STC8H"),
+                             ("stc8d", r"STC32"),
+                             ("stc8d", r"STC8A8K\d\dD\d"),
                              ("stc8", r"STC8\D")]
 
         for protocol_name, pattern in protocol_database:
