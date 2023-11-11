@@ -183,7 +183,7 @@ class StcGal:
             return 0
 
         try:
-            self.protocol.connect(autoreset=self.opts.autoreset, resetcmd=self.opts.resetcmd, resetpin=self.opts.resetpin, invertreset=self.opts.invertreset)
+            self.protocol.connect(autoreset=self.opts.autoreset, resetcmd=self.opts.resetcmd, resetpin=self.opts.resetpin)
             if isinstance(self.protocol, StcAutoProtocol):
                 if not self.protocol.protocol_name:
                     raise StcProtocolException("cannot detect protocol")
@@ -263,8 +263,7 @@ def cli():
     exclusives.add_argument("-e", "--erase", help="only erase flash memory", action="store_true")
     parser.add_argument("-a", "--autoreset", help="cycle power automatically by asserting DTR", action="store_true")
     parser.add_argument("-A", "--resetpin", help="pin to hold down when using --autoreset (default: DTR)",
-                        choices=["dtr", "rts"], default="dtr")
-    parser.add_argument("-i", "--invertreset", help="invert autoreset pin logic", action="store_true")
+                        choices=["dtr", "rts", "dtr_inverted", "rts_inverted"], default="dtr")
     parser.add_argument("-r", "--resetcmd",  help="shell command for board power-cycling (instead of DTR assertion)", action="store")
     parser.add_argument("-P", "--protocol", help="protocol version (default: auto)",
                         choices=["stc89", "stc89a", "stc12a", "stc12b", "stc12", "stc15a", "stc15", "stc8", "stc8d", "stc8g", "usb15", "auto"], default="auto")

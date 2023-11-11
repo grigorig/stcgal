@@ -269,21 +269,26 @@ class StcBaseProtocol(ABC):
         if not resetcmd:
             print("Cycling power: ", end="")
             sys.stdout.flush()
-
-            # If invertreset is enabled, start with pin at low
-            pin_state = False if invertreset else True
             
             if resetpin == "rts":
-                self.ser.setRTS(pin_state)
-            else:
-                self.ser.setDTR(pin_state)
+                self.ser.setRTS(True)
+            elif resetpin == "dtr":
+                self.ser.setDTR(True)
+            elif resetpin == "rts_inverted":
+                self.ser.setRTS(False)
+            else: # dtr_inverted
+                self.ser.setDTR(False)
 				
             time.sleep(0.25)
             
             if resetpin == "rts":
-                self.ser.setRTS(not pin_state)
-            else:
-                self.ser.setDTR(not pin_state)
+                self.ser.setRTS(False)
+            elif resetpin == "dtr":
+                self.ser.setDTR(False)
+            elif resetpin == "rts_inverted":
+                self.ser.setRTS(True)
+            else: # dtr_inverted
+                self.ser.setDTR(True)
 				
             time.sleep(0.030)
             print("done")
@@ -294,7 +299,7 @@ class StcBaseProtocol(ABC):
         print("Waiting for MCU: ", end="")
         sys.stdout.flush()
 
-    def connect(self, autoreset=False, resetcmd=False, resetpin=False, invertreset=False):
+    def connect(self, autoreset=False, resetcmd=False, resetpin=False):
         """Connect to MCU and initialize communication.
 
         Set up serial port, send sync sequence and get part info.
@@ -313,7 +318,7 @@ class StcBaseProtocol(ABC):
         self.ser.flushInput()
 
         if autoreset:
-            self.reset_device(resetcmd, resetpin, invertreset)
+            self.reset_device(resetcmd, resetpin)
         else:
             print("Waiting for MCU, please cycle power: ", end="")
             sys.stdout.flush()
