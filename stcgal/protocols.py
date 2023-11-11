@@ -265,22 +265,30 @@ class StcBaseProtocol(ABC):
     def set_option(self, name, value):
         self.options.set_option(name, value)
 
-    def reset_device(self, resetcmd=False, resetpin=False):
+    def reset_device(self, resetcmd=False, resetpin=False, invertreset=False):
         if not resetcmd:
             print("Cycling power: ", end="")
             sys.stdout.flush()
             
             if resetpin == "rts":
                 self.ser.setRTS(True)
-            else:
+            elif resetpin == "dtr":
                 self.ser.setDTR(True)
+            elif resetpin == "rts_inverted":
+                self.ser.setRTS(False)
+            else: # dtr_inverted
+                self.ser.setDTR(False)
 				
             time.sleep(0.25)
             
             if resetpin == "rts":
                 self.ser.setRTS(False)
-            else:
+            elif resetpin == "dtr":
                 self.ser.setDTR(False)
+            elif resetpin == "rts_inverted":
+                self.ser.setRTS(True)
+            else: # dtr_inverted
+                self.ser.setDTR(True)
 				
             time.sleep(0.030)
             print("done")
