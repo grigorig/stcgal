@@ -22,6 +22,7 @@ options:
   -h, --help            show this help message and exit
   -e, --erase           only erase flash memory
   -a, --autoreset       cycle power automatically by asserting DTR
+  -i, --invertreset     invert pin reset logic
   -A {dtr,rts}, --resetpin {dtr,rts}
                         pin to hold down when using --autoreset (default: DTR)
   -r RESETCMD, --resetcmd RESETCMD
